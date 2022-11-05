@@ -1,4 +1,4 @@
-const http = require('http');
+import  http from 'http';
 import { getMostPopularSitesSet } from './modules/sites/mostpopularsites.js'
 
 
@@ -9,10 +9,22 @@ const server = http.createServer((req, res) => {
   res.statusCode = 200;
   res.setHeader('Content-Type', 'text/plain');
   
-  const popularSet = getMostPopularSitesSet();
+  getMostPopularSitesSet('https://trends.netcraft.com/topsites?c=LV')
+    .then( popularSiteSet => {
+      for (const popularSite in popularSiteSet) {
+        if (Object.hasOwnProperty.call(popularSiteSet, popularSite)) {
+          const element = popularSiteSet[popularSite];
+          res.write(element);
+          res.end();
+        }
+      }
+    })
+    .catch( err => {
+      res.write(err);
+      res.end();
+    });
 
-  res.write('error');
-  res.end();
+
 });
 
 server.listen(port, hostname, () => {
