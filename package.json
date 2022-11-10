@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/vitally/masters/issues"
   },
-  "homepage": "https://github.com/vitally/masters#readme"
+  "homepage": "https://github.com/vitally/masters#readme",
+  "dependencies": {
+    "mongodb": "^4.11.0"
+  }
 }
