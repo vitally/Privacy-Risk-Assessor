@@ -16,9 +16,11 @@ const siteHelper = new MostPopularSiteHelper(popularSiteListURL);
 
 const siteObjectArray = await siteHelper.getSiteObjectArray();
 
-await database.insertMultipleRecords('latvianTrackers', siteObjectArray);
+for (const site of siteObjectArray) {
+  const result = await database.upsertSiteToDatabase('latvianTrackers',site);
+  console.log(result);
+}
 
-await database.listDatabases();
 await database.closeConnection();
 
 // const server = http.createServer((req, res) => {
