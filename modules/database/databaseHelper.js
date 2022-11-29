@@ -61,5 +61,9 @@ class DatabaseHelper {
         );
     }
 
+    async upsertTrackerToDatabse(collection,tracker){
+        
+    }
+
 }
 

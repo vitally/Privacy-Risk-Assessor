@@ -16,7 +16,7 @@ const siteHelper = new MostPopularSiteHelper(popularSiteListURL);
 const siteObjectArray = await siteHelper.getSiteObjectArray();
 
 for (const site of siteObjectArray) {
-  const result = await database.upsertSiteToDatabase('latvianTrackers',site);
+  //const result = await database.upsertSiteToDatabase('latvianTrackers',site);
   // console.log(result);
 }
 
