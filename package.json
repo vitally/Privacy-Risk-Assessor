@@ -19,6 +19,8 @@
   "homepage": "https://github.com/vitally/masters#readme",
   "dependencies": {
     "mongodb": "^4.11.0",
-    "puppeteer": "^19.3.0"
+    "puppeteer": "^19.3.0",
+    "puppeteer-extra": "^3.3.4",
+    "puppeteer-extra-plugin-stealth": "^2.11.1"
   }
 }
