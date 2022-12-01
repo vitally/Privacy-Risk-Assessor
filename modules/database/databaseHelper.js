@@ -1,4 +1,7 @@
 import { DatabaseClient } from "./databseClient.js";
+import { URLHelper } from "../navigation/urlHelper.js";
+import { ObjectId } from "mongodb";
+
 export { DatabaseHelper };
 
 
@@ -61,8 +64,38 @@ class DatabaseHelper {
         );
     }
 
-    async upsertTrackerToDatabse(collection,tracker){
-        
+    async updateSiteCookies(collectionName,site,cookies){
+        return this.openedDatabase.collection(collectionName).findOneAndUpdate(
+            {_id: site._id},
+            {$set : {
+                cookies : cookies
+            }}
+        );
+    }
+
+    async updateSiteLocalStorage(collectionName,site,localStorage){
+        return this.openedDatabase.collection(collectionName).findOneAndUpdate(
+            {_id: site._id},
+            {$set : {
+                localStorage : localStorage
+            }}
+        );
+    }
+
+    async upsertTrackerToDatabse(collectionName,site,tracker){
+        return this.openedDatabase.collection(collectionName).findOneAndUpdate(
+            {
+                fullAddress: tracker
+            },
+            {$set : {
+                domainAddress: URLHelper.trimUrlToSecondLevelDomain(tracker),
+                fullAddress : tracker
+            },
+            $addToSet : {
+                siteIds: ObjectId(site._id)
+            }},
+            {upsert : true}
+        );
     }
 
 }

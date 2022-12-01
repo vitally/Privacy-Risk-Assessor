@@ -16,19 +16,32 @@ const siteHelper = new MostPopularSiteHelper(popularSiteListURL);
 const siteObjectArray = await siteHelper.getSiteObjectArray();
 
 for (const site of siteObjectArray) {
-  //const result = await database.upsertSiteToDatabase('latvianTrackers',site);
-  // console.log(result);
+  await database.upsertSiteToDatabase('popularSites',site);
 }
 
-const cursor = await database.getAllCollectionValues('latvianTrackers');
-
-const sites = await cursor.toArray();
+const cursor = await database.getAllCollectionValues('popularSites');
 
 const navigation = new NavigationHelper();
 
-for (const site of sites) {
-  const requests = await navigation.visitPageAndInterceptURLs(site.domainAddress);
-  console.log(site.domainAddress + ': ' + requests.length);
+while (await cursor.hasNext()) {
+  try {
+    const site = await cursor.next();
+    const siteVisit = await navigation.visitPageAndInterceptURLs(site.domainAddress);
+    
+    if (siteVisit.cookies) {
+      await database.updateSiteCookies('popularSites',site,siteVisit.cookies);
+    }
+
+    if (siteVisit.localStorage) {
+      await database.updateSiteLocalStorage('popularSites',site,siteVisit.localStorage);
+    }
+
+    for (const requestFromSite of siteVisit.requests) {
+      const trackersResult = await database.upsertTrackerToDatabse('trackersOnSites',site,requestFromSite);
+    }
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 await database.closeConnection();
