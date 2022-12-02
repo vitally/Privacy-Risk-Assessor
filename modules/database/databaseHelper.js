@@ -85,11 +85,15 @@ class DatabaseHelper {
     async upsertTrackerToDatabse(collectionName,site,tracker){
         return this.openedDatabase.collection(collectionName).findOneAndUpdate(
             {
-                fullAddress: tracker
+                fullAddressWithoutParams: tracker.urlWithoutParams
             },
             {$set : {
-                domainAddress: URLHelper.trimUrlToSecondLevelDomain(tracker),
-                fullAddress : tracker
+                domainAddress: URLHelper.trimUrlToSecondLevelDomain(tracker.fullUrl),
+                fullAddress : tracker.fullUrl,
+                fullAddressWithoutParams : tracker.urlWithoutParams,
+                headers : tracker.headers,
+                method : tracker.method,
+                postData : tracker.postData
             },
             $addToSet : {
                 siteIds: ObjectId(site._id)

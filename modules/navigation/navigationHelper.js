@@ -74,15 +74,20 @@ class NavigationHelper {
         
         await page.setRequestInterception(true);
         page.on('request', interceptedRequest => {
-            const requestURL = interceptedRequest.url();
-            if ((URLHelper.trimUrlToSecondLevelDomain( requestURL ) !== urlSecondLevelDomain) 
-                    && !(requestURL.endsWith('.jpg') || requestURL.endsWith('.png') || 
-                        requestURL.endsWith('.css') || requestURL.endsWith('.ttf') || 
-                        requestURL.endsWith('.svg') || requestURL.endsWith('.jpeg')) ){
-                siteVisit.requests.push( requestURL );
-                // console.log(interceptedRequest.headers());
-                // console.log(interceptedRequest.method());
-                // console.log(interceptedRequest.postData());
+            const requestURL = interceptedRequest.url(); 
+            const requestDetails = {
+                fullUrl : requestURL,
+                urlWithoutParams : URLHelper.trimUrlToRemoveParameters(requestURL),
+                headers : interceptedRequest.headers(),
+                method : interceptedRequest.method(),
+                postData : interceptedRequest.postData()
+            };
+            if ((URLHelper.trimUrlToSecondLevelDomain( requestDetails.urlWithoutParams ) !== urlSecondLevelDomain) 
+                    && !(requestDetails.urlWithoutParams.endsWith('.jpg') || requestDetails.urlWithoutParams.endsWith('.png') || 
+                    requestDetails.urlWithoutParams.endsWith('.css') || requestDetails.urlWithoutParams.endsWith('.ttf') || 
+                    requestDetails.urlWithoutParams.endsWith('.svg') || requestDetails.urlWithoutParams.endsWith('.jpeg') ||
+                    requestDetails.urlWithoutParams.endsWith('.gif') || requestDetails.urlWithoutParams.endsWith('.woff2')) ){
+                siteVisit.requests.push( requestDetails );
             }
             interceptedRequest.continue();
         });
