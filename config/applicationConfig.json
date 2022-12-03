@@ -1,0 +1,11 @@
+{
+    "popularSiteListURL" : "https://trends.netcraft.com/topsites?c=LV",
+    "mongoURI" : "mongodb://127.0.0.1:27017/",
+    "databaseName" : "latvianTrackers",
+    "popularSiteCollectionName" : "popularSites",
+    "trackerCollectionName" : "trackersOnSites",
+    "httpServerHostname" : "127.0.0.1",
+    "httpServerPort" : 3000,
+    "collectSiteDataPeriodDays" : 7,
+    "visitPopularSiteIntervalDays" : 1
+}

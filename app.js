@@ -1,50 +1,36 @@
 import  http from 'http';
-import { MostPopularSiteHelper } from './modules/sites/mostPopularSiteHelper.js';
-import { DatabaseHelper } from './modules/database/databaseHelper.js';
-import { NavigationHelper } from './modules/navigation/navigationHelper.js';
+import { ConfigurationHelper } from "./modules/configuration/configHelper.js";
+import { isMainThread } from "worker_threads";
+import { WorkerFactory } from './modules/orchestration/workerFactory.js';
 
-const hostname = '127.0.0.1';
-const port = 3000;
-const mongoURI = 'mongodb://127.0.0.1:27017/';
-const popularSiteListURL = 'https://trends.netcraft.com/topsites?c=LV';
+const applicationConfiguration = ConfigurationHelper.getConfig('./config/applicationConfig.json');
 
-const database = new DatabaseHelper(mongoURI);
-await database.initializeConnectionAndOpenDatabase('latvianTrackers');
+if (isMainThread) {
+  const siteCollector = WorkerFactory.createWorker('./modules/orchestration/popularSiteRetriever.js', applicationConfiguration );
+  
+  siteCollector.on('message', msg => {
+    console.log(msg);
+  });
+  siteCollector.on('error', err => {
+    console.error(err);
+  });
+  siteCollector.on('exit', code  => {
+    console.log(`Popular site colelctor stopped with exit code ${code}`);
+  });
 
-const siteHelper = new MostPopularSiteHelper(popularSiteListURL);
+  const siteVisitor = WorkerFactory.createWorker('./modules/orchestration/popularSiteVisitor.js', applicationConfiguration );
+  
+  siteVisitor.on('message', msg => {
+    console.log(msg);
+  });
+  siteVisitor.on('error', err => {
+    console.error(err);
+  });
+  siteVisitor.on('exit', code  => {
+    console.log(`Popular site visitor stopped with exit code ${code}`);
+  });
 
-const siteObjectArray = await siteHelper.getSiteObjectArray();
-
-for (const site of siteObjectArray) {
-  await database.upsertSiteToDatabase('popularSites',site);
 }
-
-const cursor = await database.getAllCollectionValues('popularSites');
-
-const navigation = new NavigationHelper();
-
-while (await cursor.hasNext()) {
-  try {
-    const site = await cursor.next();
-    const siteVisit = await navigation.visitPageAndInterceptURLs(site.domainAddress);
-    
-    if (siteVisit.cookies) {
-      await database.updateSiteCookies('popularSites',site,siteVisit.cookies);
-    }
-
-    if (siteVisit.localStorage) {
-      await database.updateSiteLocalStorage('popularSites',site,siteVisit.localStorage);
-    }
-
-    for (const requestFromSite of siteVisit.requests) {
-      const trackersResult = await database.upsertTrackerToDatabse('trackersOnSites',site,requestFromSite);
-    }
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-await database.closeConnection();
 
 
 // const server = http.createServer((req, res) => {
@@ -54,6 +40,6 @@ await database.closeConnection();
 //   res.end();
 // });
 
-// server.listen(port, hostname, () => {
-//   console.log(`Server running at http://${hostname}:${port}/`);
+// server.listen(applicationConfiguration.httpServerPort, applicationConfiguration.httpServerHostname, () => {
+//   console.log(`Server running at http://${applicationConfiguration.httpServerHostname}:${applicationConfiguration.httpServerPort}/`);
 // });
