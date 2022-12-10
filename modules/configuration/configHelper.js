@@ -3,8 +3,17 @@ import { readFileSync } from "node:fs";
 export { ConfigurationHelper };
 
 class ConfigurationHelper{
-    static getConfig(path){
-        const congigJSON = readFileSync(path);
-        return  JSON.parse(congigJSON);
+    static getParsedJson(path){
+        const jsonFiletext = readFileSync(path);
+        return  JSON.parse(jsonFiletext);
     }
+
+    static getConfig(path){
+        return this.getParsedJson(path);
+    }
+
+    static getWhoisServers(path){
+        return this.getParsedJson(path);
+    }
+
 }
