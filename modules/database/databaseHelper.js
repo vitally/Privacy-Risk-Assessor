@@ -64,11 +64,38 @@ class DatabaseHelper {
         );
     }
 
+    async upsertSiteOwnerToDatabse(collectionName,whoisResponse){
+        try {
+            return this.openedDatabase.collection(collectionName).findOneAndUpdate(
+                {name: whoisResponse['Name'] ? whoisResponse['Name'] : whoisResponse['Registrant Name']},
+                {$set : {
+                    name : whoisResponse['Name'] ? whoisResponse['Name'] : whoisResponse['Registrant Name'],
+                    phone : whoisResponse['Phone'] ? whoisResponse['Phone'] : whoisResponse['Registrant Phone'],
+                    address : whoisResponse['Address'] ? whoisResponse['Address'] : `${whoisResponse['Registrant Postal Code']}, ${whoisResponse['Registrant City']}, ${whoisResponse['Registrant Country']}`,
+                    regNr : whoisResponse['RegNr'] ? whoisResponse['RegNr'] : '',
+                }},
+                {upsert : true}
+            );
+        } catch (error) {
+            console.error(error.message);
+            return error;
+        }
+    }
+
     async updateSiteCookies(collectionName,site,cookies){
         return this.openedDatabase.collection(collectionName).findOneAndUpdate(
             {_id: site._id},
             {$set : {
                 cookies : cookies
+            }}
+        );
+    }
+
+    async addSiteToOwner(collectionName,ownerId,siteId){
+        return this.openedDatabase.collection(collectionName).findOneAndUpdate(
+            {_id: ownerId},
+            {$addToSet : {
+                siteIds: ObjectId(siteId)
             }}
         );
     }

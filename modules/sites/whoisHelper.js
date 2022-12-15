@@ -62,7 +62,7 @@ class WhoisHelper{
             let data = '';
     
             socket.on('error', err => {
-                clearTimeout(timeoutId);s
+                clearTimeout(timeoutId);
                 reject(err);
             });
             

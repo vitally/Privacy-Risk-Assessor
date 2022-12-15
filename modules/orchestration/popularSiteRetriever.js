@@ -13,8 +13,15 @@ async function retrievePopularSites() {
     const whoisHelper = new WhoisHelper();
 
     for (const site of siteObjectArray) {
-        const whoisResponse = await whoisHelper.getWhoisInfo(site.domainAddress);
-        await database.upsertSiteToDatabase(workerData.popularSiteCollectionName,site);
+        try {
+            const siteRecord = await database.upsertSiteToDatabase(workerData.popularSiteCollectionName,site);
+            const whoisResponse = await whoisHelper.getWhoisInfo(site.domainAddress);
+            const siteOwnerRecord = await database.upsertSiteOwnerToDatabse(workerData.siteOwnersCollectionName,whoisResponse);
+            const siteOwnerRecordId = siteOwnerRecord.value ? siteOwnerRecord.value._id : siteOwnerRecord.lastErrorObject.upserted;
+            await database.addSiteToOwner(workerData.siteOwnersCollectionName, siteOwnerRecordId,siteRecord.value._id);
+        } catch (error) {
+            console.error(error.message);
+        }
     }
 
     await database.closeConnection();
