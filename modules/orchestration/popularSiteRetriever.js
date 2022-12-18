@@ -33,10 +33,6 @@ async function retrievePopularSites() {
     return workerData.collectSiteDataPeriodDays;
 }
 
-function processSocketData(data){
-    console.log(`WHOIS socket data: ${data}`);
-}
-
 const collectSiteDataPeriodDays = await retrievePopularSites();
 
 const retreiveIntervalMilliseconds = 24*60*60*1000*collectSiteDataPeriodDays;
