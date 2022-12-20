@@ -2,10 +2,11 @@
   "name": "masters",
   "version": "1.0.0",
   "description": "The  project to support the master's thesis",
-  "main": "index.js",
+  "main": "app.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon ./server.js localhost 3000"
   },
   "repository": {
     "type": "git",
@@ -22,6 +23,7 @@
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "mongodb": "^4.11.0",
+    "nodemon": "^2.0.20",
     "puppeteer": "^19.3.0",
     "puppeteer-extra": "^3.3.4",
     "puppeteer-extra-plugin-stealth": "^2.11.1",

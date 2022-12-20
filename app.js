@@ -2,7 +2,6 @@ import  http from 'http';
 import { ConfigurationHelper } from "./modules/configuration/configHelper.js";
 import { isMainThread } from "worker_threads";
 import { WorkerFactory } from './modules/orchestration/workerFactory.js';
-import { createApp, createRenderer } from 'vue';
 import express from 'express';
 import path from 'path';
 import cors from 'cors';
@@ -44,27 +43,19 @@ if (isMainThread) {
 }
 
 const app = express();
-const vueApp = createApp();
 
 const server = http.createServer(app);
 
 const apiHelper = new ApiHelper(applicationConfiguration);
 
-app.use(cors({origin: 'http://localhost:8081'}));
+app.use(cors({origin: 'http://localhost:5173'}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, './public')));
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, './public/index.html'));
-});
-
-app.get('/sites.js', (req, res) => {
-  res.sendFile(path.join(__dirname, './public/sites.js'));
-});
-
 app.get('/api/sites', (req, res) => {
-  console.log('api/sites called!');
+  const currentDate = new Date();
+  console.log(`[${currentDate.getHours()}:${currentDate.getMinutes()}] Sites API Called.`);
   apiHelper.getAllSites().then((data, err) => {
     if (err) {
       console.error(err);
