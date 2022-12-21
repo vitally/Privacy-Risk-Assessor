@@ -8,9 +8,10 @@
       <DocumentationIcon />
     </template>
     <template #heading>{{ site.domainAddress }}</template>
-    Cookies: {{ site.cookies.length }}
-    <br />
-    LocalStorage: {{ Object.keys(site.localStorage).length }}
+    <div>
+      <span v-if="site.cookies.length">🍪</span>
+      <span v-if="Object.keys(site.localStorage).length">💿</span>
+    </div>
   </SiteItem>
 </template>
 <script>
