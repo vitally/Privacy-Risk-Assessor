@@ -3,17 +3,11 @@ import { ConfigurationHelper } from "./modules/configuration/configHelper.js";
 import { isMainThread } from "worker_threads";
 import { WorkerFactory } from './modules/orchestration/workerFactory.js';
 import express from 'express';
-import path from 'path';
 import cors from 'cors';
 import bodyParser from 'body-parser';
-import { fileURLToPath } from 'url';
 import { ApiHelper } from './modules/api/apiHelper.js';
 
 const applicationConfiguration = ConfigurationHelper.getConfig('./config/applicationConfig.json');
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-console.log('directory-name 👉️', __dirname);
 
 if (isMainThread) {
   // const siteCollector = WorkerFactory.createWorker('./modules/orchestration/popularSiteRetriever.js', applicationConfiguration );
@@ -51,7 +45,6 @@ const apiHelper = new ApiHelper(applicationConfiguration);
 app.use(cors({origin: 'http://localhost:5173'}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, './public')));
 
 app.get('/api/sites', (req, res) => {
   const currentDate = new Date();

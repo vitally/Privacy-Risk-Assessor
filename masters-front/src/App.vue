@@ -5,27 +5,27 @@
     </div>
   </header>
   <main>
-    <SiteDetails site="siteDetailsEventData" />
-    {{ siteDetailsEventData }}
+    <SiteDetails v-bind="{ site: siteDetailsEventData }" />
   </main>
 </template>
 
 <script>
 import SiteDetails from "./components/SiteDetails.vue";
 import SiteList from "./components/SiteList.vue";
-import { ref } from "vue";
-
-const siteDetailsEventData = ref();
 
 export default {
   components: {
     SiteList,
     SiteDetails,
   },
+  data() {
+    return {
+      siteDetailsEventData: null,
+    };
+  },
   methods: {
     handleSiteDetailsEvent(data) {
-      siteDetailsEventData.value = data;
-      console.log(siteDetailsEventData.value.domainAddress);
+      this.siteDetailsEventData = data;
     },
   },
 };

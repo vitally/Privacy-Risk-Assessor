@@ -1,6 +1,6 @@
 <template>
-  <h2>{{ site.domainAddress }}</h2>
-  <p>{{ site.cookies.length }}</p>
+  <h2>{{ site?.domainAddress }}</h2>
+  <p>{{ site?.cookies?.length }}</p>
 </template>
 
 <script>
