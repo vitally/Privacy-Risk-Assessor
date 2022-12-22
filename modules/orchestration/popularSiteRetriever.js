@@ -24,6 +24,8 @@ async function retrievePopularSites() {
         }
     }
 
+    // const whoisXMLResponse = whoisHelper.getListOfDomainsForCountry('LV');
+
     await database.closeConnection();
 
     parentPort.postMessage({

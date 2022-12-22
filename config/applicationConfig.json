@@ -8,5 +8,6 @@
     "httpServerHostname" : "127.0.0.1",
     "httpServerPort" : 3000,
     "collectSiteDataPeriodDays" : 7,
-    "visitPopularSiteIntervalDays" : 1
+    "visitPopularSiteIntervalDays" : 1,
+    "whoisXMLAPIKey": "at_hrLmLxQI4N55X9r1meLzDDvq5CDrZ"
 }

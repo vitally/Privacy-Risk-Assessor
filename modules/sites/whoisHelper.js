@@ -1,8 +1,5 @@
 import { ConfigurationHelper } from '../configuration/configHelper.js';
-import net, { Socket } from 'net';
-import { resolve } from 'path';
-import { type } from 'os';
-import { rejects } from 'assert';
+import net from 'net';
 
 export { WhoisHelper };
 
@@ -14,6 +11,7 @@ class WhoisHelper{
     
     constructor(){
         this.whoisServerList = ConfigurationHelper.getWhoisServers('./config/whoisServers.json');
+        this.applicationConfig = ConfigurationHelper.getConfig('./config/applicationConfig.json');
     }
 
     getRegistrar(domain){
@@ -92,4 +90,20 @@ class WhoisHelper{
         }
         return result;
     }
+
+    // async getListOfDomainsForCountry(countryCode){
+    //     const requestParameters = {
+    //         apiKey: this.applicationConfig.whoisXMLAPIKey,
+    //         domainSearch: {
+    //             country: countryCode
+    //         }
+    //     };
+    //     try {
+    //         const whoisResponse = await axios.get(`https://www.whoisxmlapi.com/whoisserver/WhoisService?apiKey=${this.applicationConfig.whoisXMLAPIKey}&country=${countryCode}`);
+    //     } catch (err) {
+    //         console.error(err);
+    //     }
+
+    //     return whoisResponse.data.domainSearchResult.domains;
+    // }
 }

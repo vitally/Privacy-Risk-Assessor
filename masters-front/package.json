@@ -9,6 +9,9 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"
   },
   "dependencies": {
+    "@coreui/coreui": "^4.2.4",
+    "@coreui/vue": "^4.5.0",
+    "bootstrap": "^5.2.3",
     "vue": "^3.2.45"
   },
   "devDependencies": {

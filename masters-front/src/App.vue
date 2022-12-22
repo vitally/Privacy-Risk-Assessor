@@ -1,22 +1,29 @@
 <template>
-  <header>
-    <div class="wrapper">
-      <SiteList @show-site-details="handleSiteDetailsEvent" />
-    </div>
-  </header>
-  <main>
-    <SiteDetails v-bind="{ site: siteDetailsEventData }" />
-  </main>
+  <CContainer fluid>
+    <CRow>
+      <CCol>HEADER</CCol>
+    </CRow>
+    <CRow>
+      <CCol xs="3">
+        <SiteList @show-site-details="handleSiteDetailsEvent" />
+      </CCol>
+      <CCol> Details </CCol>
+    </CRow>
+  </CContainer>
 </template>
 
 <script>
-import SiteDetails from "./components/SiteDetails.vue";
+// import SiteDetails from "./components/SiteDetails.vue";
 import SiteList from "./components/SiteList.vue";
+import { CContainer, CCol, CRow } from "@coreui/vue";
 
 export default {
   components: {
     SiteList,
-    SiteDetails,
+    CContainer,
+    CCol,
+    CRow,
+    // SiteDetails,
   },
   data() {
     return {

@@ -1,26 +1,29 @@
 <template>
-  <SiteItem
-    v-for="site in sites"
-    :key="site._id"
-    @click="$emit('showSiteDetails', site)"
-  >
-    <template #icon>
-      <DocumentationIcon />
-    </template>
-    <template #heading>{{ site.domainAddress }}</template>
-    <div>
-      <span v-if="site.cookies.length">🍪</span>
-      <span v-if="Object.keys(site.localStorage).length">💿</span>
-    </div>
-  </SiteItem>
+  <CListGroup>
+    <CListGroupItem component="button" v-for="site in sites" :key="site._id">
+      <div class="d-flex w-100 justify-content-between">
+        <h5 class="mb-1">{{ site.domainAddress }}</h5>
+        <!-- <small> {{ formattedDate(site.visitDate) }}</small> -->
+      </div>
+      <CBadge v-if="site.cookies.length" color="primary">
+        {{ site.cookies.length }} Cookies
+      </CBadge>
+      <CBadge v-if="Object.keys(site.localStorage).length" color="info">
+        {{ Object.keys(site.localStorage).length }} Local Storage properties
+      </CBadge>
+    </CListGroupItem>
+  </CListGroup>
 </template>
 <script>
-import SiteItem from "./SiteItem.vue";
+import { CListGroup, CListGroupItem, CBadge } from "@coreui/vue";
+
 import { ref, onMounted } from "vue";
 
 export default {
   components: {
-    SiteItem,
+    CListGroup,
+    CListGroupItem,
+    CBadge,
   },
   emits: ["showSiteDetails"],
   setup() {
@@ -35,6 +38,16 @@ export default {
     return {
       sites,
     };
+  },
+  computed: {
+    formattedDate(date) {
+      const dateDisplayOptions = {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      };
+      return date.toLocaleDateString(undefined, dateDisplayOptions);
+    },
   },
 };
 </script>
