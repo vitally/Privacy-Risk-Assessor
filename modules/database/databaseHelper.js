@@ -109,6 +109,15 @@ class DatabaseHelper {
         );
     }
 
+    async setSiteCanvasFingerprinting(collectionName,site){
+        return this.openedDatabase.collection(collectionName).findOneAndUpdate(
+            {_id: site._id},
+            {$set : {
+                canvasFingerprinting : true
+            }}
+        );
+    }
+
     async upsertTrackerToDatabse(collectionName,site,tracker){
         return this.openedDatabase.collection(collectionName).findOneAndUpdate(
             {

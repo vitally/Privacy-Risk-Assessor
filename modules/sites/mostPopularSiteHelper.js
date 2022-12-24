@@ -22,14 +22,18 @@ class MostPopularSiteHelper{
       }
     }
     for (const popularSite of mostPopularSitesSet.values()) {
-      const siteObject = {
-        domainAddress : popularSite,
-        visitDate : new Date(),
-        scheme: popularSite.substring(0,popularSite.indexOf(':')),
-        fullAddress: ''
-      };
+      const siteObject = this.constructSiteObject(popularSite);
       siteObjectArray.push(siteObject);
     }
     return siteObjectArray;
+  }
+
+  constructSiteObject(siteURL){
+    return {
+      domainAddress : siteURL,
+      visitDate : new Date(),
+      scheme: siteURL.substring(0,siteURL.indexOf(':')),
+      fullAddress: ''
+    };
   }
 } 

@@ -2,7 +2,7 @@ import puppeteer from 'puppeteer-extra';
 import { executablePath } from 'puppeteer';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import { URLHelper } from './urlHelper.js';
-// import { fs } from 'fs';
+import moment from 'moment';
 
 export { NavigationHelper };
 
@@ -35,6 +35,7 @@ class NavigationHelper {
         const browser = await this.configureBrowser(fakeUserAgent);
 
         const page = (await browser.pages())[0];
+        page.canvasFingerprintingDetected = false;
         // const page = (await browser.pages())[0];
         const urlSecondLevelDomain = URLHelper.trimUrlToSecondLevelDomain(url);
         // //Faking User Agent
@@ -54,7 +55,7 @@ class NavigationHelper {
             HTMLCanvasElement.prototype.toDataURL = (type) => {
                 if (type.indexOf('image') > -1) {
                     // this is likely a fingerprint attempt, return fake fingerprint
-                    console.log(`${url} requested canvas`);
+                    page.canvasFingerprintingDetected = true;
                     return `data:${type};base64,iVBORw0KGgoAAAANSUhEUgAAANwAAAAeCAAAAABiES/iAAACeElEQVRYw+2YzUtUURjGf47OmDPh5AyFomUiEeEmyghXtWsh4dcswlYV2KYWfZh/QRBUVLhTCCJXEgmKUCIkFhJREARBkbkyKBlTRmUC82lxZ7z3TjM4whwXwz2ry3vO87znx33Pey4XFfHAg/PgPDgPzoPz4Dy4rFIKscSkAfmnsUY+iTfXFhxue4Zm4QpfaKbg8k+EsZNsGG6iNVzRMrkZeRPmjp6eCgcae5f+3wJIgtWLldG+DUnfzoail1etaVsEa1f2lUqw2hPd3T7nCrkMtlkQ24YDwP8+FZkI+gY3uq2cTcu54GIA/dJCDUAnSE4RdAESdALUxZ0hl4E5OMs49iE528E5a+cj5YFhDVI3vLA2c4K+zLXpvR37tNRDs3STg1OJqXqQSwS14wlJUD+VeHWAW86Qy8BwQ5Ek/WK/JBgqC72UTvJakmY5lAvurTRPSDrMmKRRcIvgeUo2KmmEI86Qy8DwmVu/ezQIBCSBLzwjKZhujv5cZZmUNkAq57ekRXCLYDG12pre5Qy5DAzDXbPfIOB/JqmCzNafCZd+dMA5RfZxdsBlNTAMF+FJfD2eSvSI0iGpmXe5GnbG3qyyHAO3yCZxlGV2uBLWDcJVMZKc7UrnfIBvQI+pHpxbS34ZaNkK7gYN0yvTDSCXyCZxNJTscFFe/DUH1w3QvpnzPiUPdTXfsvxZDdBGmeQU2SQd9lWQHS5m9J6Ln4/suZCwc96D25qM1formq5/3ApOX1uDkZ7P7JXkENkkK5eqQm3flRtuvitSYgCucKOf0zv01bazcG3Tyz8GKukvSjjrlB3/U5Rw42dqAo29yypKOO8figeX1/gH+zX9JqfOeUwAAAAASUVORK5CYII=`;
                 }
                 // otherwise, just use the original function
@@ -94,14 +95,16 @@ class NavigationHelper {
         });
         try {
             await page.goto(url);
+            console.log(`[${moment().format('DD.MM.YYYY HH:MM:ss')}] Visiting '${url}'`);
             const pageCookies = await page.cookies();
             const pageLocalStorage = await page.evaluate(() => JSON.stringify(window.localStorage));
             
             siteVisit.cookies = pageCookies;
+            if (page.canvasFingerprintingDetected) {
+                console.log('CANVAS!!!');
+            }
+            siteVisit.canvasFingerprintingDetected = page.canvasFingerprintingDetected;
             siteVisit.localStorage = JSON.parse(pageLocalStorage); 
-            // const client = await page.target().createCDPSession();
-            // const cookies = (await client.send('Network.getAllCookies')).cookies;
-            // console.log(cookies);
         } catch (error) {
             console.error(error);
         }

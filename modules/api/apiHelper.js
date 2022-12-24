@@ -1,5 +1,4 @@
 import { DatabaseHelper } from "../database/databaseHelper.js";
-
 export { ApiHelper };
 
 class ApiHelper {
@@ -23,4 +22,5 @@ class ApiHelper {
        await this.database.initializeConnectionAndOpenDatabase(this.config.databaseName);
        return await (await this.database.getAllCollectionValues(this.config.trackerCollectionName)).toArray();
     }
+
 }

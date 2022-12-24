@@ -6,78 +6,92 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import { ApiHelper } from './modules/api/apiHelper.js';
+import moment from 'moment';
 
 const applicationConfiguration = ConfigurationHelper.getConfig('./config/applicationConfig.json');
 
 if (isMainThread) {
-  // const siteCollector = WorkerFactory.createWorker('./modules/orchestration/popularSiteRetriever.js', applicationConfiguration );
+  const siteCollector = WorkerFactory.createWorker('./modules/orchestration/popularSiteRetriever.js', applicationConfiguration );
+  const siteVisitor = WorkerFactory.createWorker('./modules/orchestration/popularSiteVisitor.js', applicationConfiguration );
   
-  // siteCollector.on('message', msg => {
-  //   console.log(msg);
-  // });
-  // siteCollector.on('error', err => {
-  //   console.error(err);
-  // });
-  // siteCollector.on('exit', code  => {
-  //   console.log(`Popular site colelctor stopped with exit code ${code}`);
-  // });
+  siteCollector.on('message', msg => {
+    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Sites Colelctor: '${msg.domainAddress}'`);
+    siteVisitor.postMessage(msg);
+  });
+  siteCollector.on('error', err => {
+    console.error(err);
+  });
+  siteCollector.on('exit', code  => {
+    console.log(`Popular site colelctor stopped with exit code ${code}`);
+  });
 
-  // const siteVisitor = WorkerFactory.createWorker('./modules/orchestration/popularSiteVisitor.js', applicationConfiguration );
   
-  // siteVisitor.on('message', msg => {
-  //   console.log(msg);
-  // });
-  // siteVisitor.on('error', err => {
-  //   console.error(err);
-  // });
-  // siteVisitor.on('exit', code  => {
-  //   console.log(`Popular site visitor stopped with exit code ${code}`);
-  // });
+  siteVisitor.on('message', msg => {
+    console.log(msg);
+  });
+  siteVisitor.on('error', err => {
+    console.error(err);
+    siteVisitor = WorkerFactory.createWorker('./modules/orchestration/popularSiteVisitor.js', applicationConfiguration );
+  });
+  siteVisitor.on('exit', code  => {
+    console.log(`Popular site visitor stopped with exit code ${code}`);
+    siteVisitor = WorkerFactory.createWorker('./modules/orchestration/popularSiteVisitor.js', applicationConfiguration );
+  });
 
+  process.on('message', message => {
+    this.siteCollector.postMessage(message);
+  });
+
+  const app = express();
+
+  const server = http.createServer(app);
+
+  const apiHelper = new ApiHelper(applicationConfiguration);
+
+  app.use(cors({origin: 'http://localhost:8080'}));
+  app.use(bodyParser.json());
+  app.use(bodyParser.urlencoded({ extended: true }));
+
+  app.get('/api/sites', (req, res) => {
+    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Sites API Called.`);
+    apiHelper.getAllSites().then((data, err) => {
+      if (err) {
+        console.error(err);
+      }
+      res.json(data);
+    });
+  });
+
+  app.get('/api/sites/:siteName', (req, res) => {
+    const siteToVisit = Buffer.from(req.params.siteName, 'base64').toString('utf8');
+    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Sites API Called. Need to visit '${siteToVisit}'`);
+    //TODO: Send a message to Site Collector
+    siteCollector.postMessage(siteToVisit);
+    res.sendStatus(200);
+  });
+
+  app.get('/api/owners', (req, res) => {
+    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Owners API Called.`);
+    apiHelper.getAllOwners().then((data, err) => {
+      if (err) {
+        console.error(err);
+      }
+      res.json(data);
+    });
+  });
+
+  app.get('/api/trackers', (req, res) => {
+    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Trackers API Called.`);
+    apiHelper.getAllTrackers().then((data, err) => {
+      if (err) {
+        console.error(err);
+      }
+      res.json(data);
+    });
+  });
+
+  // Start the server
+  server.listen(applicationConfiguration.httpServerPort, () => {
+    console.log(`Server listening on http://localhost:${applicationConfiguration.httpServerPort}`);
+  });
 }
-
-const app = express();
-
-const server = http.createServer(app);
-
-const apiHelper = new ApiHelper(applicationConfiguration);
-
-app.use(cors({origin: 'http://localhost:5173'}));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-app.get('/api/sites', (req, res) => {
-  const currentDate = new Date();
-  console.log(`[${currentDate.getHours()}:${currentDate.getMinutes()}] Sites API Called.`);
-  apiHelper.getAllSites().then((data, err) => {
-    if (err) {
-      console.error(err);
-    }
-    res.json(data);
-  });
-});
-
-app.get('/api/owners', (req, res) => {
-  console.log('api/owners called!');
-  apiHelper.getAllOwners().then((data, err) => {
-    if (err) {
-      console.error(err);
-    }
-    res.json(data);
-  });
-});
-
-app.get('/api/trackers', (req, res) => {
-  console.log('api/trackers called!');
-  apiHelper.getAllTrackers().then((data, err) => {
-    if (err) {
-      console.error(err);
-    }
-    res.json(data);
-  });
-});
-
-// Start the server
-server.listen(applicationConfiguration.httpServerPort, () => {
-  console.log(`Server listening on http://localhost:${applicationConfiguration.httpServerPort}`);
-});

@@ -1,32 +1,18 @@
-import { MostPopularSiteHelper } from '../sites/mostPopularSiteHelper.js';
-import { DatabaseHelper } from '../database/databaseHelper.js';
-import { WhoisHelper } from '../sites/whoisHelper.js';
 import { parentPort, workerData } from "worker_threads";
+import { DatabaseHelper } from '../database/databaseHelper.js';
+import { MostPopularSiteHelper } from '../sites/mostPopularSiteHelper.js';
+import { WhoisHelper } from '../sites/whoisHelper.js';
+import moment from "moment";
 
 async function retrievePopularSites() {
     const siteHelper = new MostPopularSiteHelper(workerData.popularSiteListURL);
     const siteObjectArray = await siteHelper.getSiteObjectArray();
     
-    const database = new DatabaseHelper(workerData.mongoURI);
-    await database.initializeConnectionAndOpenDatabase(workerData.databaseName);
-    
-    const whoisHelper = new WhoisHelper();
-
     for (const site of siteObjectArray) {
-        try {
-            const siteRecord = await database.upsertSiteToDatabase(workerData.popularSiteCollectionName,site);
-            const whoisResponse = await whoisHelper.getWhoisInfo(site.domainAddress);
-            const siteOwnerRecord = await database.upsertSiteOwnerToDatabse(workerData.siteOwnersCollectionName,whoisResponse);
-            const siteOwnerRecordId = siteOwnerRecord.value ? siteOwnerRecord.value._id : siteOwnerRecord.lastErrorObject.upserted;
-            await database.addSiteToOwner(workerData.siteOwnersCollectionName, siteOwnerRecordId,siteRecord.value._id);
-        } catch (error) {
-            console.error(error.message);
-        }
+        await addOneSiteToDatabase(site);
     }
 
     // const whoisXMLResponse = whoisHelper.getListOfDomainsForCountry('LV');
-
-    await database.closeConnection();
 
     parentPort.postMessage({
         siteRetrievalTime: new Date()
@@ -34,6 +20,32 @@ async function retrievePopularSites() {
 
     return workerData.collectSiteDataPeriodDays;
 }
+
+async function addOneSiteToDatabase(site){
+    const whoisHelper = new WhoisHelper();
+    const database = new DatabaseHelper(workerData.mongoURI);
+    await database.initializeConnectionAndOpenDatabase(workerData.databaseName);
+
+    try {
+        const siteRecord = await database.upsertSiteToDatabase(workerData.popularSiteCollectionName,site);
+        const whoisResponse = await whoisHelper.getWhoisInfo(site.domainAddress);
+        const siteOwnerRecord = await database.upsertSiteOwnerToDatabse(workerData.siteOwnersCollectionName,whoisResponse);
+        const siteOwnerRecordId = siteOwnerRecord.value ? siteOwnerRecord.value._id : siteOwnerRecord.lastErrorObject.upserted;
+        const siteRecordId = siteRecord.value ? siteRecord.value._id : siteRecord.lastErrorObject.upserted;
+        await database.addSiteToOwner(workerData.siteOwnersCollectionName, siteOwnerRecordId,siteRecordId);
+        siteRecord.value._id = siteRecordId;
+        parentPort.postMessage(siteRecord.value);
+        return siteRecord.value;
+    } catch (error) {
+        console.error(error.message);
+    }
+}
+
+parentPort.on('message', message => {
+    const siteHelper = new MostPopularSiteHelper(workerData.popularSiteListURL);
+    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Site Retriever - Single Visit : '${message}'`);
+    addOneSiteToDatabase(siteHelper.constructSiteObject(message));
+});
 
 const collectSiteDataPeriodDays = await retrievePopularSites();
 
