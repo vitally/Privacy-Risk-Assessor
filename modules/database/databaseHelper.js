@@ -138,5 +138,39 @@ class DatabaseHelper {
         );
     }
 
+    async getAllTheSitesWithRequestsAndOwners(sitesCollection,requestsCollection,ownersCollection){
+        return await this.openedDatabase.collection(sitesCollection).aggregate([
+            {
+                $lookup: {
+                    from: requestsCollection,
+                    localField: '_id',
+                    foreignField: 'siteIds',
+                    as: 'requests'
+                }
+            },
+            {
+                $lookup: {
+                    from: ownersCollection,
+                    localField: '_id',
+                    foreignField: 'siteIds',
+                    as: 'owners'
+                }
+            },
+        ]).toArray();
+    }
+    
+    async getAllRequestCountByDomainAddress(requestsCollection){
+        return await this.openedDatabase.collection(requestsCollection).aggregate([
+            {
+                $group: {
+                    _id: '$domainAddress',
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $sort: { count: -1 }
+            }
+        ]).toArray();
+    }
 }
 

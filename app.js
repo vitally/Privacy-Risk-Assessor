@@ -62,6 +62,16 @@ if (isMainThread) {
     });
   });
 
+  app.get('/api/sites/completeInfo', (req, res) => {
+    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Sites with Requests and Owners API Called.`);
+    apiHelper.getAllTheSitesWithRequestsAndOwners().then((data, err) => {
+      if (err) {
+        console.error(err);
+      }
+      res.json(data);
+    });
+  });
+
   app.get('/api/sites/:siteName', (req, res) => {
     const siteToVisit = Buffer.from(req.params.siteName, 'base64').toString('utf8');
     console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Sites API Called. Need to visit '${siteToVisit}'`);
@@ -83,6 +93,16 @@ if (isMainThread) {
   app.get('/api/trackers', (req, res) => {
     console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Trackers API Called.`);
     apiHelper.getAllTrackers().then((data, err) => {
+      if (err) {
+        console.error(err);
+      }
+      res.json(data);
+    });
+  });
+
+  app.get('/api/trackers/groupByDomain', (req, res) => {
+    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Trackers Group By Domain API Called.`);
+    apiHelper.getAllRequestCountByDomainAddress().then((data, err) => {
       if (err) {
         console.error(err);
       }

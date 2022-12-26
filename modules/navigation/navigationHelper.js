@@ -88,7 +88,8 @@ class NavigationHelper {
                     && !(requestDetails.urlWithoutParams.endsWith('.jpg') || requestDetails.urlWithoutParams.endsWith('.png') || 
                     requestDetails.urlWithoutParams.endsWith('.css') || requestDetails.urlWithoutParams.endsWith('.ttf') || 
                     requestDetails.urlWithoutParams.endsWith('.svg') || requestDetails.urlWithoutParams.endsWith('.jpeg') ||
-                    requestDetails.urlWithoutParams.endsWith('.gif') || requestDetails.urlWithoutParams.endsWith('.woff2')) ){
+                    requestDetails.urlWithoutParams.endsWith('.gif') || requestDetails.urlWithoutParams.endsWith('.woff2') ||
+                    requestDetails.urlWithoutParams.endsWith('.woff'))){
                 siteVisit.requests.push( requestDetails );
             }
             interceptedRequest.continue();

@@ -23,4 +23,14 @@ class ApiHelper {
        return await (await this.database.getAllCollectionValues(this.config.trackerCollectionName)).toArray();
     }
 
+    async getAllTheSitesWithRequestsAndOwners(){
+      await this.database.initializeConnectionAndOpenDatabase(this.config.databaseName);
+      return await this.database.getAllTheSitesWithRequestsAndOwners(this.config.popularSiteCollectionName,this.config.trackerCollectionName, this.config.siteOwnersCollectionName);
+    }
+
+    async getAllRequestCountByDomainAddress(){
+      await this.database.initializeConnectionAndOpenDatabase(this.config.databaseName);
+      return await this.database.getAllRequestCountByDomainAddress(this.config.trackerCollectionName);
+    }
+
 }
