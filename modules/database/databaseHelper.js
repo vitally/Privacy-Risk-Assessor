@@ -184,6 +184,12 @@ class DatabaseHelper {
             },
         ]).toArray();
     }
+
+    async findOneRecordById(recordId, collectionName){
+        return await this.openedDatabase.collection(collectionName).findOne({
+            _id: ObjectId(recordId)
+        });
+    }
     
     async getAllRequestCountByDomainAddress(requestsCollection){
         return await this.openedDatabase.collection(requestsCollection).aggregate([

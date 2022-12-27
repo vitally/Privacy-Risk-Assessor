@@ -33,6 +33,9 @@ async function addOneSiteToDatabase(site){
         const siteOwnerRecordId = siteOwnerRecord.value ? siteOwnerRecord.value._id : siteOwnerRecord.lastErrorObject.upserted;
         const siteRecordId = siteRecord.value ? siteRecord.value._id : siteRecord.lastErrorObject.upserted;
         await database.addSiteToOwner(workerData.siteOwnersCollectionName, siteOwnerRecordId,siteRecordId);
+        if (!siteRecord.value) {
+            siteRecord.value = await database.findOneRecordById(siteRecordId.toString(), workerData.popularSiteCollectionName);
+        }
         siteRecord.value._id = siteRecordId.toString();
         parentPort.postMessage(siteRecord.value);
         return siteRecord.value;
