@@ -26,9 +26,6 @@ if (isMainThread) {
   });
 
   
-  siteVisitor.on('message', msg => {
-    console.log(msg);
-  });
   siteVisitor.on('error', err => {
     console.error(err);
     siteVisitor = WorkerFactory.createWorker('./modules/orchestration/popularSiteVisitor.js', applicationConfiguration );
@@ -75,9 +72,10 @@ if (isMainThread) {
   app.get('/api/sites/:siteName', (req, res) => {
     const siteToVisit = Buffer.from(req.params.siteName, 'base64').toString('utf8');
     console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Sites API Called. Need to visit '${siteToVisit}'`);
-    //TODO: Send a message to Site Collector
     siteCollector.postMessage(siteToVisit);
-    res.sendStatus(200);
+    siteVisitor.once('message', msg => {
+      res.json(msg);
+    });
   });
 
   app.get('/api/owners', (req, res) => {

@@ -23,9 +23,11 @@ async function visitOneSite(site){
         }
 
         for (const requestFromSite of siteVisit.requests) {
-            console.log(site._id);
             await database.upsertTrackerToDatabse(workerData.trackerCollectionName,site,requestFromSite);
         }
+
+        return await database.getOneSitesWithRequestsAndOwners(site._id, workerData.popularSiteCollectionName, workerData.trackerCollectionName, workerData.siteOwnersCollectionName);
+
     } catch (error) {
         console.error(error);
     }
@@ -33,5 +35,5 @@ async function visitOneSite(site){
 
 parentPort.on('message', message => {
     console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Site Visitor: '${message.domainAddress}'`);
-    visitOneSite(message);
+    visitOneSite(message).then(data => parentPort.postMessage(data));
 });

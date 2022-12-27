@@ -158,6 +158,32 @@ class DatabaseHelper {
             },
         ]).toArray();
     }
+
+    async getOneSitesWithRequestsAndOwners(siteId,sitesCollection,requestsCollection,ownersCollection){
+        return await this.openedDatabase.collection(sitesCollection).aggregate([
+            {
+                $match: {
+                    _id: ObjectId(siteId)
+                }
+            },
+            {
+                $lookup: {
+                    from: requestsCollection,
+                    localField: '_id',
+                    foreignField: 'siteIds',
+                    as: 'requests'
+                }
+            },
+            {
+                $lookup: {
+                    from: ownersCollection,
+                    localField: '_id',
+                    foreignField: 'siteIds',
+                    as: 'owners'
+                }
+            },
+        ]).toArray();
+    }
     
     async getAllRequestCountByDomainAddress(requestsCollection){
         return await this.openedDatabase.collection(requestsCollection).aggregate([

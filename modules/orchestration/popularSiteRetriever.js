@@ -33,7 +33,7 @@ async function addOneSiteToDatabase(site){
         const siteOwnerRecordId = siteOwnerRecord.value ? siteOwnerRecord.value._id : siteOwnerRecord.lastErrorObject.upserted;
         const siteRecordId = siteRecord.value ? siteRecord.value._id : siteRecord.lastErrorObject.upserted;
         await database.addSiteToOwner(workerData.siteOwnersCollectionName, siteOwnerRecordId,siteRecordId);
-        siteRecord.value._id = siteRecordId;
+        siteRecord.value._id = siteRecordId.toString();
         parentPort.postMessage(siteRecord.value);
         return siteRecord.value;
     } catch (error) {
@@ -41,10 +41,10 @@ async function addOneSiteToDatabase(site){
     }
 }
 
-parentPort.on('message', message => {
+parentPort.on('message', siteToVisit => {
     const siteHelper = new MostPopularSiteHelper(workerData.popularSiteListURL);
-    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Site Retriever - Single Visit : '${message}'`);
-    addOneSiteToDatabase(siteHelper.constructSiteObject(message));
+    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Site Retriever - Single Visit : '${siteToVisit}'`);
+    addOneSiteToDatabase(siteHelper.constructSiteObject(siteToVisit));
 });
 
 // const collectSiteDataPeriodDays = await retrievePopularSites();
