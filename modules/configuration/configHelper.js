@@ -4,8 +4,8 @@ export { ConfigurationHelper };
 
 class ConfigurationHelper{
     static getParsedJson(path){
-        const jsonFiletext = readFileSync(path);
-        return  JSON.parse(jsonFiletext);
+        const jsonFileText = readFileSync(path);
+        return  JSON.parse(jsonFileText);
     }
 
     static getConfig(path){

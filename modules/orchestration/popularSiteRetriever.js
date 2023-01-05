@@ -12,8 +12,6 @@ async function retrievePopularSites() {
         await addOneSiteToDatabase(site);
     }
 
-    // const whoisXMLResponse = whoisHelper.getListOfDomainsForCountry('LV');
-
     parentPort.postMessage({
         siteRetrievalTime: new Date()
     });

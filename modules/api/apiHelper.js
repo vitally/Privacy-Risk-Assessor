@@ -1,4 +1,6 @@
 import { DatabaseHelper } from "../database/databaseHelper.js";
+import { DocumentHelper } from "../docs/documentHelper.js";
+
 export { ApiHelper };
 
 class ApiHelper {
@@ -31,6 +33,10 @@ class ApiHelper {
     async getAllRequestCountByDomainAddress(){
       await this.database.initializeConnectionAndOpenDatabase(this.config.databaseName);
       return await this.database.getAllRequestCountByDomainAddress(this.config.trackerCollectionName);
+    }
+
+    async createComplaintDocument(docData){
+      return DocumentHelper.createComplaintDoc(docData);
     }
 
 }

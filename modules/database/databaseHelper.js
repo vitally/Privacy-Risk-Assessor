@@ -196,7 +196,7 @@ class DatabaseHelper {
             {
                 $group: {
                     _id: '$domainAddress',
-                    count: { $sum: 1 }
+                    count: { $sum: { $size: '$siteIds' } }
                 }
             },
             {

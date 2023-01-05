@@ -108,6 +108,23 @@ if (isMainThread) {
     });
   });
 
+  app.get('/api/docs/generate', (req, res) => {
+    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Document Generation API Called.`);
+    const requestData = JSON.parse(req.body);
+    res.set('Content-Type', 'application/octet-stream');
+    res.set('Content-Disposition', `attachment; filename=${requestData.firstName}${requestData.lastName}-DVI-Complaint.docx`);
+    apiHelper.createComplaintDocument(requestData).then((data, err) => {
+      if (err) {
+        res.status(500).send(err);
+      }
+      res.send(data);
+    });
+  });
+
+  app.use((req, res, next) => {
+    res.status(404).send('Not Found');
+  });
+
   // Start the server
   server.listen(applicationConfiguration.httpServerPort, () => {
     console.log(`Server listening on http://localhost:${applicationConfiguration.httpServerPort}`);
