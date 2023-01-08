@@ -91,7 +91,7 @@ class NavigationHelper {
                     requestDetails.urlWithoutParams.endsWith('.woff') || requestDetails.urlWithoutParams.indexOf('data:') === 0 )){
                 siteVisit.requests.push( requestDetails );
             }
-            if(requestDetails.urlWithoutParams.includes('KOKOKOiVBORw0KGgoAAAANSUhEUg')){
+            if(requestDetails.urlWithoutParams.includes('iVBORw0KGgoAAAANSUhEUg')){
                 siteVisit.canvasFingerprintingDetected = true;
             }
             interceptedRequest.continue();
