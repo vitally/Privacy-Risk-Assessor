@@ -108,9 +108,10 @@ if (isMainThread) {
     });
   });
 
-  app.get('/api/docs/generate', (req, res) => {
+  app.post('/api/docs/generate', (req, res) => {
     console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Document Generation API Called.`);
-    const requestData = JSON.parse(req.body);
+    const requestData = req.body;
+    //const requestData = {firstName:'Hoba', lastName:'Boba', personalCode:'123456-12345'};
     res.set('Content-Type', 'application/octet-stream');
     res.set('Content-Disposition', `attachment; filename=${requestData.firstName}${requestData.lastName}-DVI-Complaint.docx`);
     apiHelper.createComplaintDocument(requestData).then((data, err) => {
