@@ -91,17 +91,17 @@ class NavigationHelper {
                     requestDetails.urlWithoutParams.endsWith('.woff') || requestDetails.urlWithoutParams.indexOf('data:') === 0 )){
                 siteVisit.requests.push( requestDetails );
             }
-            if(requestDetails.urlWithoutParams.includes('iVBORw0KGgoAAAANSUhEUg')){
+            if(requestDetails.fullUrl.includes('iVBORw0KGgoAAAANSUhEUg')){
                 siteVisit.canvasFingerprintingDetected = true;
             }
             interceptedRequest.continue();
         });
         try {
-            await page.goto(url);
+            const pageVisitResponse =  await page.goto(url);
             console.log(`[${moment().format('DD.MM.YYYY HH:MM:ss')}] Visiting '${url}'`);
             const pageCookies = await page.cookies();
             const pageLocalStorage = await page.evaluate(() => JSON.stringify(window.localStorage));
-            
+            siteVisit.pageSourceCode = await pageVisitResponse.text();
             siteVisit.cookies = pageCookies;
             if (page.canvasFingerprintingDetected) {
                 console.log('CANVAS!!!');

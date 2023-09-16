@@ -1,3 +1,5 @@
+import { NavigationHelper } from "../navigation/navigationHelper.js";
+
 export { MostPopularSiteHelper };
 
 class MostPopularSiteHelper{
@@ -7,16 +9,18 @@ class MostPopularSiteHelper{
   }
   
   async getSiteObjectArray() {
+    const navigation = new NavigationHelper();
+
+    const siteVisit = await navigation.visitPageAndInterceptURLs(this.siteListUrl);
+
     const tableCellRegExp = /<td><a href=["'].*["']>http[s]?:\/\/[a-zA-Z0-9\-\.]+[a-zA-Z]+<\/a><\/td>/g;
     const urlRegExp = /http[s]?:\/\/[a-zA-Z0-9\-\.]+[a-zA-Z]+/g;
     const mostPopularSitesSet = new Set();
     let tableResultArray;
     let siteResultArray;
     let siteObjectArray = [];
-    const response = await fetch(this.siteListUrl);
-    const responseText = await response.text();
     
-    while ((tableResultArray = tableCellRegExp.exec(responseText)) !== null) {
+    while ((tableResultArray = tableCellRegExp.exec(siteVisit.pageSourceCode)) !== null) {
       while ((siteResultArray = urlRegExp.exec(tableResultArray[0])) !== null) {
         mostPopularSitesSet.add(siteResultArray[0]);
       }
