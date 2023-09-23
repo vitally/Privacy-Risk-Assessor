@@ -87,7 +87,8 @@ class DatabaseHelper {
             {_id: site._id},
             {$set : {
                 cookies : cookies
-            }}
+            }},
+            { returnNewDocument: true }
         );
     }
 

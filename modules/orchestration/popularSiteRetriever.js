@@ -48,7 +48,7 @@ parentPort.on('message', siteToVisit => {
     addOneSiteToDatabase(siteHelper.constructSiteObject(siteToVisit));
 });
 
-const collectSiteDataPeriodDays = await retrievePopularSites();
+// const collectSiteDataPeriodDays = await retrievePopularSites();
 
-const retreiveIntervalMilliseconds = 24*60*60*1000*collectSiteDataPeriodDays;
-setInterval(() => {retrievePopularSites();}, retreiveIntervalMilliseconds);
+// const retreiveIntervalMilliseconds = 24*60*60*1000*collectSiteDataPeriodDays;
+// setInterval(() => {retrievePopularSites();}, retreiveIntervalMilliseconds);
