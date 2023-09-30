@@ -87,8 +87,7 @@ class DatabaseHelper {
             {_id: site._id},
             {$set : {
                 cookies : cookies
-            }},
-            { returnNewDocument: true }
+            }}
         );
     }
 
@@ -106,6 +105,15 @@ class DatabaseHelper {
             {_id: site._id},
             {$set : {
                 localStorage : localStorage
+            }}
+        );
+    }
+
+    async updateSiteFrames(collectionName,site,frames){
+        return this.openedDatabase.collection(collectionName).findOneAndUpdate(
+            {_id: site._id},
+            {$set : {
+                frames : frames
             }}
         );
     }

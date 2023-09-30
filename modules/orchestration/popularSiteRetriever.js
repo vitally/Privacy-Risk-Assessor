@@ -4,13 +4,28 @@ import { MostPopularSiteHelper } from '../sites/mostPopularSiteHelper.js';
 import { WhoisHelper } from '../sites/whoisHelper.js';
 import moment from "moment";
 
-async function retrievePopularSites() {
-    const siteHelper = new MostPopularSiteHelper(workerData.popularSiteListURL);
-    const siteObjectArray = await siteHelper.getSiteObjectArray();
+// async function retrievePopularSites() {
+//     const siteHelper = new MostPopularSiteHelper(workerData.popularSiteListURL);
+//     const siteObjectArray = await siteHelper.getSiteObjectArray();
     
-    for (const site of siteObjectArray) {
-        await addOneSiteToDatabase(site);
-    }
+//     for (const site of siteObjectArray) {
+//         await addOneSiteToDatabase(site);
+//     }
+
+//     parentPort.postMessage({
+//         siteRetrievalTime: new Date()
+//     });
+
+//     return workerData.collectSiteDataPeriodDays;
+// }
+
+async function visitStoredrSites() {
+
+    const database = new DatabaseHelper(workerData.mongoURI);
+    await database.initializeConnectionAndOpenDatabase(workerData.databaseName);
+    (await database.getAllCollectionValues(workerData.popularSiteCollectionName)).forEach(site => {
+        addOneSiteToDatabase(site);
+    });
 
     parentPort.postMessage({
         siteRetrievalTime: new Date()
@@ -48,7 +63,7 @@ parentPort.on('message', siteToVisit => {
     addOneSiteToDatabase(siteHelper.constructSiteObject(siteToVisit));
 });
 
-// const collectSiteDataPeriodDays = await retrievePopularSites();
+// const collectSiteDataPeriodDays = await visitStoredrSites();
 
 // const retreiveIntervalMilliseconds = 24*60*60*1000*collectSiteDataPeriodDays;
-// setInterval(() => {retrievePopularSites();}, retreiveIntervalMilliseconds);
+// setInterval(() => {visitStoredrSites();}, retreiveIntervalMilliseconds);

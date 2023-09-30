@@ -17,7 +17,7 @@ async function visitOneSite(site) {
         site._id,
         workerData.popularSiteCollectionName
       );
-      const updateResult = await database.updateSiteCookies(
+      await database.updateSiteCookies(
         workerData.popularSiteCollectionName,
         foundSite,
         siteVisit.cookies
@@ -25,10 +25,26 @@ async function visitOneSite(site) {
     }
 
     if (siteVisit.localStorage) {
+      const foundSite = await database.findOneRecordById(
+        site._id,
+        workerData.popularSiteCollectionName
+      );
       await database.updateSiteLocalStorage(
         workerData.popularSiteCollectionName,
-        site,
+        foundSite,
         siteVisit.localStorage
+      );
+    }
+
+    if (siteVisit.frames) {
+      const foundSite = await database.findOneRecordById(
+        site._id,
+        workerData.popularSiteCollectionName
+      );
+      await database.updateSiteFrames(
+        workerData.popularSiteCollectionName,
+        foundSite,
+        siteVisit.frames
       );
     }
 
