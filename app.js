@@ -27,12 +27,12 @@ if (isMainThread) {
 
   
   siteVisitor.on('error', err => {
-    console.error(err);
-    siteVisitor = WorkerFactory.createWorker('./modules/orchestration/popularSiteVisitor.js', applicationConfiguration );
+    console.error(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Site Visitor: '${err.message}'`);
+    // siteVisitor = WorkerFactory.createWorker('./modules/orchestration/popularSiteVisitor.js', applicationConfiguration );
   });
   siteVisitor.on('exit', code  => {
     console.log(`Popular site visitor stopped with exit code ${code}`);
-    siteVisitor = WorkerFactory.createWorker('./modules/orchestration/popularSiteVisitor.js', applicationConfiguration );
+   // siteVisitor = WorkerFactory.createWorker('./modules/orchestration/popularSiteVisitor.js', applicationConfiguration );
   });
 
   process.on('message', message => {
@@ -45,7 +45,7 @@ if (isMainThread) {
 
   const apiHelper = new ApiHelper(applicationConfiguration);
 
-  app.use(cors({origin: 'http://localhost:8080'}));
+  app.use(cors({origin: ['http://localhost:8080','http://localhost:3333']}));
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -62,6 +62,16 @@ if (isMainThread) {
   app.get('/api/sites/completeInfo', (req, res) => {
     console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Sites with Requests and Owners API Called.`);
     apiHelper.getAllTheSitesWithRequestsAndOwners().then((data, err) => {
+      if (err) {
+        console.error(err);
+      }
+      res.json(data);
+    });
+  });
+
+  app.get('/api/sites/cookiesByDomain', (req, res) => {
+    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Cookies by Domain API Called.`);
+    apiHelper.getAllCookiesByDomain().then((data, err) => {
       if (err) {
         console.error(err);
       }
@@ -111,7 +121,6 @@ if (isMainThread) {
   app.post('/api/docs/generate', (req, res) => {
     console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Document Generation API Called.`);
     const requestData = req.body;
-    //const requestData = {firstName:'Hoba', lastName:'Boba', personalCode:'123456-12345'};
     res.set('Content-Type', 'application/octet-stream');
     res.set('Content-Disposition', `attachment; filename=${requestData.firstName}${requestData.lastName}-DVI-Complaint.docx`);
     apiHelper.createComplaintDocument(requestData).then((data, err) => {

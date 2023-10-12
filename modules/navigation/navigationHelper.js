@@ -31,6 +31,15 @@ class NavigationHelper {
     });
   }
 
+  delayedBrowserClose(browser, delay) {
+    return new Promise(resolve => {
+      setTimeout(async () => {
+        await browser.close();
+        resolve();
+      }, delay);
+    });
+  }
+
   async visitPageAndInterceptURLs(url) {
     //Fake user agent is built using:
     //https://filipvitas.medium.com/how-to-set-user-agent-header-with-puppeteer-js-and-not-fail-28c7a02165da
@@ -40,134 +49,160 @@ class NavigationHelper {
     //puppeteer.use(StealthPlugin());
     const browser = await this.configureBrowser(fakeUserAgent);
 
-    const page = (await browser.pages())[0];
-    page.canvasFingerprintingDetected = false;
-    // const page = (await browser.pages())[0];
-    const urlSecondLevelDomain = URLHelper.trimUrlToSecondLevelDomain(url);
-    // //Faking User Agent
-    await page.evaluateOnNewDocument((fakeUserAgent) => {
-      //faking window.open
-      let open = window.open;
-      //faking navigator in a new page
-      window.open = (...args) => {
-        let newPage = open(...args);
-        replaceNavigatorProperties(newPage, fakeUserAgent);
-      };
-      //faking navigator in an original page
-      replaceNavigatorProperties(this, fakeUserAgent);
-
-      //overriding canvas finegrprint attempt
-      const originalCanvasToDataURL = HTMLCanvasElement.prototype.toDataURL;
-      HTMLCanvasElement.prototype.toDataURL = (type) => {
-        console.log(
-          `[${moment().format("DD.MM.YYYY HH:MM:ss")}] Canvas.toDataURL '${url}'`
-        );
-        if (type.indexOf("image") > -1) {
-          // this is likely a fingerprint attempt, return fake fingerprint
-          return `data:${type};base64,iVBORw0KGgoAAAANSUhEUgAAANwAAAAeCAAAAABiES/iAAACeElEQVRYw+2YzUtUURjGf47OmDPh5AyFomUiEeEmyghXtWsh4dcswlYV2KYWfZh/QRBUVLhTCCJXEgmKUCIkFhJREARBkbkyKBlTRmUC82lxZ7z3TjM4whwXwz2ry3vO87znx33Pey4XFfHAg/PgPDgPzoPz4Dy4rFIKscSkAfmnsUY+iTfXFhxue4Zm4QpfaKbg8k+EsZNsGG6iNVzRMrkZeRPmjp6eCgcae5f+3wJIgtWLldG+DUnfzoail1etaVsEa1f2lUqw2hPd3T7nCrkMtlkQ24YDwP8+FZkI+gY3uq2cTcu54GIA/dJCDUAnSE4RdAESdALUxZ0hl4E5OMs49iE528E5a+cj5YFhDVI3vLA2c4K+zLXpvR37tNRDs3STg1OJqXqQSwS14wlJUD+VeHWAW86Qy8BwQ5Ek/WK/JBgqC72UTvJakmY5lAvurTRPSDrMmKRRcIvgeUo2KmmEI86Qy8DwmVu/ezQIBCSBLzwjKZhujv5cZZmUNkAq57ekRXCLYDG12pre5Qy5DAzDXbPfIOB/JqmCzNafCZd+dMA5RfZxdsBlNTAMF+FJfD2eSvSI0iGpmXe5GnbG3qyyHAO3yCZxlGV2uBLWDcJVMZKc7UrnfIBvQI+pHpxbS34ZaNkK7gYN0yvTDSCXyCZxNJTscFFe/DUH1w3QvpnzPiUPdTXfsvxZDdBGmeQU2SQd9lWQHS5m9J6Ln4/suZCwc96D25qM1formq5/3ApOX1uDkZ7P7JXkENkkK5eqQm3flRtuvitSYgCucKOf0zv01bazcG3Tyz8GKukvSjjrlB3/U5Rw42dqAo29yypKOO8figeX1/gH+zX9JqfOeUwAAAAASUVORK5CYII=`;
-        }
-        // otherwise, just use the original function
-        return originalCanvasToDataURL.apply(this, arguments);
-      };
-      const originalToBlob = HTMLCanvasElement.prototype.toBlob;
-      HTMLCanvasElement.prototype.toBlob = function(...args) {
-        console.log(
-            `[${moment().format("DD.MM.YYYY HH:MM:ss")}] Canvas.toBlob '${url}'`
-        );
-        // Perform any additional logic or handling here
-        return originalToBlob.apply(this, args);
-    };
-    
-    const originalGetImageData = CanvasRenderingContext2D.prototype.getImageData;
-    CanvasRenderingContext2D.prototype.getImageData = function(...args) {
-          console.log(
-              `[${moment().format("DD.MM.YYYY HH:MM:ss")}] Canvas.getImageData '${url}'`
-          );
-          console.log('Canvas getImageData method intercepted!');
-          // Perform any additional logic or handling here
-          // You might want to return altered or constant image data here to mitigate fingerprinting
-          return originalGetImageData.apply(this, args);
-      };
-    }, fakeUserAgent);
+    this.delayedBrowserClose(browser, 10000);
 
     browser.on("targetcreated", async (target) => {
       const createdPage = await target.page();
       await createdPage?.setUserAgent(fakeUserAgent);
     });
 
-    // await page.setUserAgent(fakeUserAgent);
-    //EOF Fakeing User Agent
-    const siteVisit = new Object();
-    siteVisit.requests = [];
-
-    await page.setRequestInterception(true);
-    page.on("request", (interceptedRequest) => {
-      const requestURL = interceptedRequest.url();
-      const requestDetails = {
-        fullUrl: requestURL,
-        urlWithoutParams: URLHelper.trimUrlToRemoveParameters(requestURL),
-        headers: interceptedRequest.headers(),
-        method: interceptedRequest.method(),
-        postData: interceptedRequest.postData(),
-      };
-      if (
-        URLHelper.trimUrlToSecondLevelDomain(
-          requestDetails.urlWithoutParams
-        ) !== urlSecondLevelDomain &&
-        !(
-          requestDetails.urlWithoutParams.endsWith(".jpg") ||
-          requestDetails.urlWithoutParams.endsWith(".png") ||
-          requestDetails.urlWithoutParams.endsWith(".css") ||
-          requestDetails.urlWithoutParams.endsWith(".ttf") ||
-          requestDetails.urlWithoutParams.endsWith(".svg") ||
-          requestDetails.urlWithoutParams.endsWith(".jpeg") ||
-          requestDetails.urlWithoutParams.endsWith(".gif") ||
-          requestDetails.urlWithoutParams.endsWith(".woff2") ||
-          requestDetails.urlWithoutParams.endsWith(".woff") ||
-          requestDetails.urlWithoutParams.indexOf("data:") === 0
-        )
-      ) {
-        siteVisit.requests.push(requestDetails);
-      }
-      if (requestDetails.fullUrl.includes("iVBORw0KGgoAAAANSUhEUg")) {
-        siteVisit.canvasFingerprintingDetected = true;
-      }
-      interceptedRequest.continue();
+    browser.on('disconnected', () => {
+      console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}) Disconnecting`);
     });
-    try {
-      const pageVisitResponse = await page.goto(url);
-      console.log(
-        `[${moment().format("DD.MM.YYYY HH:MM:ss")}] Visiting '${url}'`
-      );
-      const client = await page.target().createCDPSession();
-      const pageCookies = (await client.send("Network.getAllCookies")).cookies;
-      const pageLocalStorage = await page.evaluate(() =>
-        JSON.stringify(window.localStorage)
-      );
 
-      const frames = await page.frames();
-      const siteFrames = [];
-      frames.forEach(frame => {
-        const frameUrl = frame.url();
-        if (frameUrl!== 'about:blank' && frameUrl !== url) {
-            const siteFrame = {url: frameUrl};
-            frame.evaluate(() => JSON.stringify(window.localStorage)).then(frameLocalStorage => {
-                siteFrame.localStorage = frameLocalStorage;
-            });
-            siteFrames.push(siteFrame);
+    const page = (await browser.pages())[0];
+
+    const siteVisit = new Object();
+
+    if (page && !page.isClosed() && page.target()) {
+      // The page is still open and the target exists
+      page.canvasFingerprintingDetected = false;
+      // const page = (await browser.pages())[0];
+      const urlSecondLevelDomain = URLHelper.trimUrlToSecondLevelDomain(url);
+      // //Faking User Agent
+      await page.evaluateOnNewDocument((fakeUserAgent) => {
+        //faking window.open
+        let open = window.open;
+        //faking navigator in a new page
+        window.open = (...args) => {
+          let newPage = open(...args);
+          replaceNavigatorProperties(newPage, fakeUserAgent);
+        };
+        //faking navigator in an original page
+        replaceNavigatorProperties(this, fakeUserAgent);
+  
+        //overriding canvas finegrprint attempt
+        const originalCanvasToDataURL = HTMLCanvasElement.prototype.toDataURL;
+        HTMLCanvasElement.prototype.toDataURL = (type) => {
+          console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}) Canvas.toDataURL.`);
+          if (type.indexOf("image") > -1) {
+            // this is likely a fingerprint attempt, return fake fingerprint
+            return `data:${type};base64,iVBORw0KGgoAAAANSUhEUgAAANwAAAAeCAAAAABiES/iAAACeElEQVRYw+2YzUtUURjGf47OmDPh5AyFomUiEeEmyghXtWsh4dcswlYV2KYWfZh/QRBUVLhTCCJXEgmKUCIkFhJREARBkbkyKBlTRmUC82lxZ7z3TjM4whwXwz2ry3vO87znx33Pey4XFfHAg/PgPDgPzoPz4Dy4rFIKscSkAfmnsUY+iTfXFhxue4Zm4QpfaKbg8k+EsZNsGG6iNVzRMrkZeRPmjp6eCgcae5f+3wJIgtWLldG+DUnfzoail1etaVsEa1f2lUqw2hPd3T7nCrkMtlkQ24YDwP8+FZkI+gY3uq2cTcu54GIA/dJCDUAnSE4RdAESdALUxZ0hl4E5OMs49iE528E5a+cj5YFhDVI3vLA2c4K+zLXpvR37tNRDs3STg1OJqXqQSwS14wlJUD+VeHWAW86Qy8BwQ5Ek/WK/JBgqC72UTvJakmY5lAvurTRPSDrMmKRRcIvgeUo2KmmEI86Qy8DwmVu/ezQIBCSBLzwjKZhujv5cZZmUNkAq57ekRXCLYDG12pre5Qy5DAzDXbPfIOB/JqmCzNafCZd+dMA5RfZxdsBlNTAMF+FJfD2eSvSI0iGpmXe5GnbG3qyyHAO3yCZxlGV2uBLWDcJVMZKc7UrnfIBvQI+pHpxbS34ZaNkK7gYN0yvTDSCXyCZxNJTscFFe/DUH1w3QvpnzPiUPdTXfsvxZDdBGmeQU2SQd9lWQHS5m9J6Ln4/suZCwc96D25qM1formq5/3ApOX1uDkZ7P7JXkENkkK5eqQm3flRtuvitSYgCucKOf0zv01bazcG3Tyz8GKukvSjjrlB3/U5Rw42dqAo29yypKOO8figeX1/gH+zX9JqfOeUwAAAAASUVORK5CYII=`;
+          }
+          // otherwise, just use the original function
+          return originalCanvasToDataURL.apply(this, arguments);
+        };
+        const originalToBlob = HTMLCanvasElement.prototype.toBlob;
+        HTMLCanvasElement.prototype.toBlob = function(...args) {
+          console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}) Canvas.toBlob.`);
+          // Perform any additional logic or handling here
+          return originalToBlob.apply(this, args);
+        };
+      
+        const originalGetImageData = CanvasRenderingContext2D.prototype.getImageData;
+        CanvasRenderingContext2D.prototype.getImageData = function(...args) {
+            console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}) Canvas.getImageData.`);
+            // Perform any additional logic or handling here
+            // You might want to return altered or constant image data here to mitigate fingerprinting
+            return originalGetImageData.apply(this, args);
+        };
+      }, fakeUserAgent);
+  
+      // await page.setUserAgent(fakeUserAgent);
+      //EOF Fakeing User Agent
+      siteVisit.requests = [];
+  
+      await page.setRequestInterception(true);
+      page.on("request", (interceptedRequest) => {
+        const requestURL = interceptedRequest.url();
+        const requestDetails = {
+          fullUrl: requestURL,
+          urlWithoutParams: URLHelper.trimUrlToRemoveParameters(requestURL),
+          headers: interceptedRequest.headers(),
+          method: interceptedRequest.method(),
+          postData: interceptedRequest.postData(),
+        };
+        if (
+          URLHelper.trimUrlToSecondLevelDomain(requestDetails.urlWithoutParams) !== urlSecondLevelDomain &&
+          !(
+            requestDetails.urlWithoutParams.endsWith(".jpg") ||
+            requestDetails.urlWithoutParams.endsWith(".png") ||
+            requestDetails.urlWithoutParams.endsWith(".css") ||
+            requestDetails.urlWithoutParams.endsWith(".ttf") ||
+            requestDetails.urlWithoutParams.endsWith(".svg") ||
+            requestDetails.urlWithoutParams.endsWith(".jpeg") ||
+            requestDetails.urlWithoutParams.endsWith(".gif") ||
+            requestDetails.urlWithoutParams.endsWith(".woff2") ||
+            requestDetails.urlWithoutParams.endsWith(".woff") ||
+            requestDetails.urlWithoutParams.indexOf("data:") === 0
+          )
+        ) {
+          siteVisit.requests.push(requestDetails);
         }
+        if (requestDetails.fullUrl.includes("iVBORw0KGgoAAAANSUhEUg")) {
+          siteVisit.canvasFingerprintingDetected = true;
+        }
+        interceptedRequest.continue();
       });
-
-      siteVisit.pageSourceCode = await pageVisitResponse.text();
-      siteVisit.cookies = pageCookies;
-      siteVisit.localStorage = JSON.parse(pageLocalStorage);
-      siteVisit.frames = siteFrames;
-    } catch (error) {
-      console.error(error);
-    } finally {
-      await browser.close();
+      try {
+        console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}): Visiting.`);
+        try {
+          await page.goto(url);
+        } catch (error) {
+          console.error(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}):  Failed to visit the page: ${error.message}`);
+          return {
+            domainAddress: url,
+            accessible: false,
+            error: error.message
+          };
+        }
+        const client = await page.target().createCDPSession();
+        const pageCookies = (await client.send("Network.getAllCookies")).cookies;
+  
+        let pageLocalStorage = {};
+        try {
+          pageLocalStorage = await page.evaluate(() =>
+            JSON.stringify(window.localStorage)
+          );
+        } catch (error) {
+          console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}): Local Strorage retrieval failure: '${error.message}'`);
+        }
+  
+        const frames = await page.frames();
+        const siteFrames = [];
+        frames.forEach(frame => {
+          const frameUrl = frame.url();
+          if (frameUrl!== 'about:blank' && frameUrl !== url) {
+              const siteFrame = {url: frameUrl};
+              frame.evaluate(() => {
+                  JSON.stringify(window.localStorage)
+                }
+              ).then(frameLocalStorage => {
+                    siteFrame.localStorage = frameLocalStorage;
+              }).catch(error => {
+                console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${frameUrl}) Frame: '${error.message}'`);
+              });
+              siteFrames.push(siteFrame);
+          }
+        });
+  
+        // siteVisit.pageSourceCode = await pageVisitResponse.text();
+        siteVisit.cookies = pageCookies;
+        siteVisit.localStorage = JSON.parse(pageLocalStorage);
+        siteVisit.frames = siteFrames;
+        siteVisit.accessible = true;
+        siteVisit.error = '';
+      } catch (error) {
+        siteVisit.accessible = false;
+        siteVisit.error = error.message;
+        console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}): puppeteer failure: '${error.message}'`);
+      } 
+      finally {
+        this.delayedBrowserClose(browser, 15000);
+      }
+    } else {
+      console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}) Puppeteer page was closed, can't proceed.`);
     }
-
     return siteVisit;
   }
 }

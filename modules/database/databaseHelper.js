@@ -213,5 +213,81 @@ class DatabaseHelper {
             }
         ]).toArray();
     }
+
+    async getAllCokiesByDomain(sitesCollection){
+        return await this.openedDatabase.collection(sitesCollection).aggregate(
+            [
+              {
+                $unwind: {
+                  path: '$cookies',
+                  preserveNullAndEmptyArrays: false
+                }
+              },
+              {
+                $project: {
+                  domainAddress: 1,
+                  cookieName: '$cookies.name',
+                  cookieDomain: '$cookies.domain',
+                  cookieExpires: '$cookies.expires'
+                }
+              },
+              {
+                $addFields: {
+                  cookieDomain: {
+                    $cond: [
+                      {
+                        $eq: [
+                          {
+                            $substr: ['$cookieDomain', 0, 1]
+                          },
+                          '.'
+                        ]
+                      },
+                      { $substr: ['$cookieDomain', 1, -1] },
+                      '$cookieDomain'
+                    ]
+                  },
+                  cookieExpiresDate: {
+                    $cond: [
+                      { $eq: ['$cookieExpires', -1] },
+                      null,
+                      {
+                        $toDate: {
+                          $multiply: [
+                            {
+                              $convert: {
+                                input: '$cookieExpires',
+                                to: 'double'
+                              }
+                            },
+                            1000
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                $group: {
+                  _id: '$cookieDomain',
+                  details: {
+                    $push: {
+                      domain: '$domainAddress',
+                      name: '$cookieName',
+                      expires: '$cookieExpiresDate'
+                    }
+                  },
+                  domainAddresses: {
+                    $addToSet: '$domainAddress'
+                  },
+                  count: { $count: {} }
+                }
+              },
+              { $sort: { count: -1 } }
+            ],
+            { maxTimeMS: 60000, allowDiskUse: true }
+          );
+    }
 }
 
