@@ -40,6 +40,45 @@ class NavigationHelper {
     });
   }
 
+  processResponseCookies(visitResponse){
+    const setCookieHeaders = visitResponse.headers()['set-cookie'];
+    const requestCookies = [];
+    if (setCookieHeaders) {
+      // Split the Set-Cookie header into individual cookies
+      const cookies = setCookieHeaders.split(/,\s*(?=[^;]+=[^;]+;)/);
+      
+      cookies.forEach(header => {
+        // Use a RegExp to extract the cookie's name, value, and domain
+        const cookieRegex = /([^;=\s]+)=([^;]*);.*expires=([^;]*);.*domain=([^;]*);/i;
+        const match = cookieRegex.exec(header);
+  
+        if (match) {
+          const [, cookieName, cookieValue, cookieExpires, cookieDomain] = match;
+          requestCookies.push({
+            name: cookieName,
+            value: cookieValue,
+            expires: new Date(cookieExpires),
+            domain: cookieDomain
+          });
+        }
+      });
+    }
+    return requestCookies;
+  }
+
+  processRequest(interceptedRequest){
+    const requestURL = interceptedRequest.url();
+    const requestDetails = {
+      fullUrl: requestURL,
+      urlWithoutParams: URLHelper.trimUrlToRemoveParameters(requestURL),
+      headers: interceptedRequest.headers(),
+      method: interceptedRequest.method(),
+      postData: interceptedRequest.postData()?.replace(/[\u0000-\u001F\u007F-\u009F]/g, ''),
+      canvasFingerprint: requestURL.includes("iVBORw0KGgoAAAANSUhEUg")
+    };
+    return requestDetails;
+  }
+
   async visitPageAndInterceptURLs(url) {
     //Fake user agent is built using:
     //https://filipvitas.medium.com/how-to-set-user-agent-header-with-puppeteer-js-and-not-fail-28c7a02165da
@@ -112,42 +151,27 @@ class NavigationHelper {
       //EOF Fakeing User Agent
       siteVisit.requests = [];
   
-      await page.setRequestInterception(true);
-      page.on("request", (interceptedRequest) => {
-        const requestURL = interceptedRequest.url();
-        const requestDetails = {
-          fullUrl: requestURL,
-          urlWithoutParams: URLHelper.trimUrlToRemoveParameters(requestURL),
-          headers: interceptedRequest.headers(),
-          method: interceptedRequest.method(),
-          postData: interceptedRequest.postData(),
-        };
-        if (
-          URLHelper.trimUrlToSecondLevelDomain(requestDetails.urlWithoutParams) !== urlSecondLevelDomain &&
-          !(
-            requestDetails.urlWithoutParams.endsWith(".jpg") ||
-            requestDetails.urlWithoutParams.endsWith(".png") ||
-            requestDetails.urlWithoutParams.endsWith(".css") ||
-            requestDetails.urlWithoutParams.endsWith(".ttf") ||
-            requestDetails.urlWithoutParams.endsWith(".svg") ||
-            requestDetails.urlWithoutParams.endsWith(".jpeg") ||
-            requestDetails.urlWithoutParams.endsWith(".gif") ||
-            requestDetails.urlWithoutParams.endsWith(".woff2") ||
-            requestDetails.urlWithoutParams.endsWith(".woff") ||
-            requestDetails.urlWithoutParams.indexOf("data:") === 0
-          )
-        ) {
+      // await page.setRequestInterception(true);
+      // page.on("request", intercaptedRequest => {
+
+      // });
+
+      page.on('response', async(response) => {
+        const cookies = this.processResponseCookies(response);
+        const requestDetails = this.processRequest(response.request());
+        if (requestDetails) {
+          if (cookies.length > 0) {
+            requestDetails.cookies = cookies;
+          }
           siteVisit.requests.push(requestDetails);
         }
-        if (requestDetails.fullUrl.includes("iVBORw0KGgoAAAANSUhEUg")) {
-          siteVisit.canvasFingerprintingDetected = true;
-        }
-        interceptedRequest.continue();
       });
+
       try {
         console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}): Visiting.`);
+        let visitResponse = null;
         try {
-          await page.goto(url);
+          visitResponse = await page.goto(url);
         } catch (error) {
           console.error(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}):  Failed to visit the page: ${error.message}`);
           return {
@@ -156,9 +180,11 @@ class NavigationHelper {
             error: error.message
           };
         }
-        const client = await page.target().createCDPSession();
-        const pageCookies = (await client.send("Network.getAllCookies")).cookies;
-  
+
+        if (visitResponse) {
+          this.processResponseCookies(visitResponse);
+        }
+
         let pageLocalStorage = {};
         try {
           pageLocalStorage = await page.evaluate(() =>
@@ -186,8 +212,6 @@ class NavigationHelper {
           }
         });
   
-        // siteVisit.pageSourceCode = await pageVisitResponse.text();
-        siteVisit.cookies = pageCookies;
         siteVisit.localStorage = JSON.parse(pageLocalStorage);
         siteVisit.frames = siteFrames;
         siteVisit.accessible = true;

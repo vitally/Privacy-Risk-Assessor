@@ -26,6 +26,8 @@ async function visitStoredrSites() {
     await database.initializeConnectionAndOpenDatabase(workerData.databaseName);
     (await database.getAllCollectionValues(workerData.popularSiteCollectionName)).forEach(site => {
         addOneSiteToDatabase(site);
+        // if (site.domainAddress.indexOf('delfi') > -1) {
+        // }
     });
 
     parentPort.postMessage({
@@ -98,7 +100,7 @@ async function processFile(filePath) {
 // processFile('./config/latvianList.txt');
 
 
-// const collectSiteDataPeriodDays = await visitStoredrSites();
+const collectSiteDataPeriodDays = await visitStoredrSites();
 
 // const retreiveIntervalMilliseconds = 24*60*60*1000*collectSiteDataPeriodDays;
 // setInterval(() => {visitStoredrSites();}, retreiveIntervalMilliseconds);

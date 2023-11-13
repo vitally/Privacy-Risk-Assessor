@@ -51,19 +51,18 @@ async function visitOneSite(site) {
   if (site.domainAddress) {
     try {
       const siteVisit = await navigation.visitPageAndInterceptURLs(site.domainAddress);
+      const foundSite = await database.findOneRecordById( site._id, workerData.popularSiteCollectionName );
+      const cookies = [];
 
-      if (siteVisit.cookies) {
-        const foundSite = await database.findOneRecordById( site._id, workerData.popularSiteCollectionName );
-        await database.updateSiteCookies( workerData.popularSiteCollectionName, foundSite, siteVisit.cookies );
-      }
+      // if (siteVisit.cookies) {
+      //   await database.updateSiteCookies( workerData.popularSiteCollectionName, foundSite, siteVisit.cookies );
+      // }
 
       if (siteVisit.localStorage) {
-        const foundSite = await database.findOneRecordById( site._id, workerData.popularSiteCollectionName );
         await database.updateSiteLocalStorage( workerData.popularSiteCollectionName, foundSite, siteVisit.localStorage );
       }
 
       if (siteVisit.frames) {
-        const foundSite = await database.findOneRecordById( site._id, workerData.popularSiteCollectionName );
         await database.updateSiteFrames( workerData.popularSiteCollectionName, foundSite, siteVisit.frames );
       }
 
@@ -73,8 +72,19 @@ async function visitOneSite(site) {
 
       if (isIterable(siteVisit.requests)) {
         for (const requestFromSite of siteVisit.requests) {
-          await database.upsertTrackerToDatabse( workerData.trackerCollectionName, site, requestFromSite );
+          const upsertResult = await database.upsertTrackerToDatabse( workerData.trackerCollectionName, site, requestFromSite );
+          if (isIterable(requestFromSite.cookies)) {
+            for (const requestCookie of requestFromSite.cookies) {
+              requestCookie.siteId = foundSite._id;
+              requestCookie.requestId  = upsertResult.value?._id;
+              cookies.push(requestCookie);
+            }   
+          }
         }
+      }
+
+      if (cookies.length > 0) {
+        await database.upsertCookiesToDatabse(workerData.siteCookiesCollectionName, cookies);
       }
 
       return await database.getOneSitesWithRequestsAndOwners( site._id, workerData.popularSiteCollectionName, workerData.trackerCollectionName, workerData.siteOwnersCollectionName );

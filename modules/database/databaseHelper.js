@@ -82,6 +82,24 @@ class DatabaseHelper {
         }
     }
 
+    async upsertCookiesToDatabse(collectionName,cookies){
+        try {
+
+            const bulkOps = cookies.map(cookie => ({
+                updateOne: {
+                    filter: { siteId: cookie.siteId, requestId: cookie.requestId },
+                    update: { $set: cookie },
+                    upsert: true
+                }
+            }));
+
+            return await this.openedDatabase.collection(collectionName).bulkWrite(bulkOps);
+        } catch (error) {
+            console.error(error.message);
+            return error;
+        }
+    }
+
     async updateSiteCookies(collectionName,site,cookies){
         return this.openedDatabase.collection(collectionName).findOneAndUpdate(
             {_id: site._id},
