@@ -1,5 +1,6 @@
 import { DatabaseHelper } from "../database/databaseHelper.js";
 import { NavigationHelper } from "../navigation/navigationHelper.js";
+import { AnalyticsHelper } from "../analytics/analyticsHelper.js";
 import { parentPort, workerData } from "worker_threads";
 import moment from "moment";
 
@@ -43,6 +44,18 @@ function isIterable(obj) {
   return typeof obj[Symbol.iterator] === 'function';
 }
 
+async function upsertRequestsAndReturnIds(database, siteVisit){
+  if (isIterable(siteVisit.requests)) {
+    for (const requestFromSite of siteVisit.requests) {
+      const upsertResult = await database.upsertTrackerToDatabse( workerData.trackerCollectionName, siteVisit, requestFromSite );
+      if (upsertResult.value?._id) {
+        requestFromSite._id = upsertResult.value?._id;
+      }
+    }
+  }
+  return siteVisit;
+}
+
 async function visitOneSite(site) {
   const navigation = new NavigationHelper();
   const database = new DatabaseHelper(workerData.mongoURI);
@@ -51,43 +64,48 @@ async function visitOneSite(site) {
   if (site.domainAddress) {
     try {
       const siteVisit = await navigation.visitPageAndInterceptURLs(site.domainAddress);
-      const foundSite = await database.findOneRecordById( site._id, workerData.popularSiteCollectionName );
-      const cookies = [];
-
-      // if (siteVisit.cookies) {
-      //   await database.updateSiteCookies( workerData.popularSiteCollectionName, foundSite, siteVisit.cookies );
-      // }
-
+      siteVisit.owner = site.owner;
+      site.accessible = siteVisit.accessible;
+      site.error = siteVisit.error;
+      const upsertResult = await database.upsertSiteToDatabase(workerData.popularSiteCollectionName,site);
+      // const foundSite = await database.findOneRecordById( site._id, workerData.popularSiteCollectionName );
+      siteVisit._id = upsertResult.value?._id;
+      
+      if (siteVisit.cookies) {
+          await database.updateSiteCookies( workerData.popularSiteCollectionName, siteVisit );
+      }
+        
       if (siteVisit.localStorage) {
-        await database.updateSiteLocalStorage( workerData.popularSiteCollectionName, foundSite, siteVisit.localStorage );
+        await database.updateSiteLocalStorage( workerData.popularSiteCollectionName, siteVisit );
       }
-
+      
       if (siteVisit.frames) {
-        await database.updateSiteFrames( workerData.popularSiteCollectionName, foundSite, siteVisit.frames );
+        await database.updateSiteFrames( workerData.popularSiteCollectionName, siteVisit );
       }
-
+      
       if (siteVisit.canvasFingerprintingDetected) {
-        await database.setSiteCanvasFingerprinting( workerData.popularSiteCollectionName, site);
+        await database.setSiteCanvasFingerprinting( workerData.popularSiteCollectionName, siteVisit);
       }
+      
+      
+      await upsertRequestsAndReturnIds(database,siteVisit);
+      
+      const analyticsHelper = new AnalyticsHelper(siteVisit);
 
-      if (isIterable(siteVisit.requests)) {
-        for (const requestFromSite of siteVisit.requests) {
-          const upsertResult = await database.upsertTrackerToDatabse( workerData.trackerCollectionName, site, requestFromSite );
-          if (isIterable(requestFromSite.cookies)) {
-            for (const requestCookie of requestFromSite.cookies) {
-              requestCookie.siteId = foundSite._id;
-              requestCookie.requestId  = upsertResult.value?._id;
-              cookies.push(requestCookie);
-            }   
-          }
-        }
-      }
+      const cookies = [];
+      cookies.push(... analyticsHelper.getAllCookiesFromRequests(siteVisit));
 
       if (cookies.length > 0) {
         await database.upsertCookiesToDatabse(workerData.siteCookiesCollectionName, cookies);
       }
 
-      return await database.getOneSitesWithRequestsAndOwners( site._id, workerData.popularSiteCollectionName, workerData.trackerCollectionName, workerData.siteOwnersCollectionName );
+      // siteVisit.thirdPartyDomainsAddressed = analyticsHelper.thirdPartyDomainsAddressed;
+      // siteVisit.cookiesSetByThirdPartyRequests = analyticsHelper.cookiesSetByThirdPartyRequests;
+      // siteVisit.framesReferringToThirdPartyDomains = analyticsHelper.framesReferringToThirdPartyDomains;
+      // siteVisit.ownerWithProperName = analyticsHelper.ownerWithProperNames;
+      siteVisit.trackerDiversityScore = analyticsHelper.trackerDiversityScore;
+
+      return await database.getOneSitesWithRequestsAndOwners( siteVisit._id, workerData.popularSiteCollectionName, workerData.trackerCollectionName, workerData.siteOwnersCollectionName );
     } catch (error) {
       console.error(error);
     }

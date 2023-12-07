@@ -25,9 +25,9 @@ async function visitStoredrSites() {
     const database = new DatabaseHelper(workerData.mongoURI);
     await database.initializeConnectionAndOpenDatabase(workerData.databaseName);
     (await database.getAllCollectionValues(workerData.popularSiteCollectionName)).forEach(site => {
-        addOneSiteToDatabase(site);
-        // if (site.domainAddress.indexOf('delfi') > -1) {
-        // }
+        if (site.domainAddress.indexOf('delfi') > -1) {
+            addOneSiteToDatabase(site);
+        }
     });
 
     parentPort.postMessage({
@@ -55,11 +55,15 @@ async function addOneSiteToDatabase(site){
             const siteOwnerRecord = await database.upsertSiteOwnerToDatabse(workerData.siteOwnersCollectionName,whoisResponse);
             const siteOwnerRecordId = siteOwnerRecord.value ? siteOwnerRecord.value._id : siteOwnerRecord.lastErrorObject.upserted;
             await database.addSiteToOwner(workerData.siteOwnersCollectionName, siteOwnerRecordId,siteRecordId);
+            whoisResponse = siteOwnerRecord.value;
         }
         if (!siteRecord.value) {
             siteRecord.value = await database.findOneRecordById(siteRecordId.toString(), workerData.popularSiteCollectionName);
         }
-        siteRecord.value._id = siteRecordId.toString();
+        if (!siteRecord.value._id) {
+            siteRecord.value._id = siteRecordId;
+        }
+        siteRecord.value.owner = whoisResponse;
         parentPort.postMessage(siteRecord.value);
         return siteRecord.value;
     } catch (error) {

@@ -7,6 +7,9 @@ import moment from "moment";
 export { NavigationHelper };
 
 class NavigationHelper {
+
+  requestIdToDateMap = new Map();
+
   async configureBrowser(userAgent) {
     return await puppeteer.launch({
       headless: true,
@@ -71,10 +74,12 @@ class NavigationHelper {
     const requestDetails = {
       fullUrl: requestURL,
       urlWithoutParams: URLHelper.trimUrlToRemoveParameters(requestURL),
+      domainName: URLHelper.trimUrlToSecondLevelDomain(requestURL),
       headers: interceptedRequest.headers(),
       method: interceptedRequest.method(),
-      postData: interceptedRequest.postData()?.replace(/[\u0000-\u001F\u007F-\u009F]/g, ''),
-      canvasFingerprint: requestURL.includes("iVBORw0KGgoAAAANSUhEUg")
+      postData: interceptedRequest.postData()?.replace(/[^\x00-\x7F]+/g, ''),
+      canvasFingerprint: requestURL.includes("iVBORw0KGgoAAAANSUhEUg"),
+      executionTime: interceptedRequest.startTime ? new Date() - interceptedRequest.startTime : null
     };
     return requestDetails;
   }
@@ -102,12 +107,13 @@ class NavigationHelper {
     const page = (await browser.pages())[0];
 
     const siteVisit = new Object();
+    siteVisit.domainName = URLHelper.trimUrlToSecondLevelDomain(url);
 
     if (page && !page.isClosed() && page.target()) {
       // The page is still open and the target exists
       page.canvasFingerprintingDetected = false;
       // const page = (await browser.pages())[0];
-      const urlSecondLevelDomain = URLHelper.trimUrlToSecondLevelDomain(url);
+      // const urlSecondLevelDomain = URLHelper.trimUrlToSecondLevelDomain(url);
       // //Faking User Agent
       await page.evaluateOnNewDocument((fakeUserAgent) => {
         //faking window.open
@@ -167,6 +173,11 @@ class NavigationHelper {
         }
       });
 
+      page.on('request', async(request) => {
+        request.startTime = new Date();
+        // this.requestIdToDateMap.set(request._requestId, new Date());
+      });
+
       try {
         console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}): Visiting.`);
         let visitResponse = null;
@@ -199,7 +210,10 @@ class NavigationHelper {
         frames.forEach(frame => {
           const frameUrl = frame.url();
           if (frameUrl!== 'about:blank' && frameUrl !== url) {
-              const siteFrame = {url: frameUrl};
+              const siteFrame = {
+                url: frameUrl,
+                domainName: URLHelper.trimUrlToSecondLevelDomain(frameUrl)
+              };
               frame.evaluate(() => {
                   JSON.stringify(window.localStorage)
                 }
@@ -211,9 +225,12 @@ class NavigationHelper {
               siteFrames.push(siteFrame);
           }
         });
-  
-        siteVisit.localStorage = JSON.parse(pageLocalStorage);
         siteVisit.frames = siteFrames;
+
+        const client = await page.target().createCDPSession();
+        siteVisit.cookies = (await client.send("Network.getAllCookies")).cookies;
+        
+        siteVisit.localStorage = JSON.parse(pageLocalStorage);
         siteVisit.accessible = true;
         siteVisit.error = '';
       } catch (error) {

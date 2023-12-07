@@ -56,9 +56,11 @@ class DatabaseHelper {
             this.createNameValueJSON('domainAddress',site.domainAddress),
             {$set : {
                 domainAddress : site.domainAddress,
-                visitDate : site.visitDate,
+                visitDate : new Date(),
                 scheme : site.scheme,
-                fullAddress : site.fullAddress
+                fullAddress : site.fullAddress,
+                accessible : site.accessible,
+                error : site.error
             }},
             {upsert : true}
         );
@@ -100,11 +102,11 @@ class DatabaseHelper {
         }
     }
 
-    async updateSiteCookies(collectionName,site,cookies){
+    async updateSiteCookies(collectionName,site){
         return this.openedDatabase.collection(collectionName).findOneAndUpdate(
             {_id: site._id},
             {$set : {
-                cookies : cookies
+                cookies : site.cookies
             }}
         );
     }
@@ -118,20 +120,20 @@ class DatabaseHelper {
         );
     }
 
-    async updateSiteLocalStorage(collectionName,site,localStorage){
+    async updateSiteLocalStorage(collectionName,site){
         return this.openedDatabase.collection(collectionName).findOneAndUpdate(
             {_id: site._id},
             {$set : {
-                localStorage : localStorage
+                localStorage : site.localStorage
             }}
         );
     }
 
-    async updateSiteFrames(collectionName,site,frames){
+    async updateSiteFrames(collectionName,site){
         return this.openedDatabase.collection(collectionName).findOneAndUpdate(
             {_id: site._id},
             {$set : {
-                frames : frames
+                frames : site.frames
             }}
         );
     }
@@ -159,7 +161,7 @@ class DatabaseHelper {
                 postData : tracker.postData
             },
             $addToSet : {
-                siteIds: ObjectId(site._id)
+                siteIds: site._id
             }},
             {upsert : true}
         );
