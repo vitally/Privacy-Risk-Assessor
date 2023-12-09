@@ -24,6 +24,11 @@ class Queue {
       try {
           console.log(`[${moment().format("DD.MM.YYYY HH:MM:SS")}] Processing ${message.domainAddress}. Queue size: '${this.items.length}'`);
           const data = await visitOneSite(message);
+          if (data.ok == 1) {
+            console.log(`[${moment().format("DD.MM.YYYY HH:MM:SS")}] Finished processing ${message.domainAddress}.`);
+          } else {
+            console.log(`[${moment().format("DD.MM.YYYY HH:MM:SS")}] Failed processing ${message.domainAddress}.`);
+          }
           parentPort.postMessage(data);
       } catch (error) {
           console.error(error);
@@ -68,7 +73,6 @@ async function visitOneSite(site) {
       site.accessible = siteVisit.accessible;
       site.error = siteVisit.error;
       const upsertResult = await database.upsertSiteToDatabase(workerData.popularSiteCollectionName,site);
-      // const foundSite = await database.findOneRecordById( site._id, workerData.popularSiteCollectionName );
       siteVisit._id = upsertResult.value?._id;
       
       if (siteVisit.cookies) {
@@ -99,13 +103,12 @@ async function visitOneSite(site) {
         await database.upsertCookiesToDatabse(workerData.siteCookiesCollectionName, cookies);
       }
 
-      // siteVisit.thirdPartyDomainsAddressed = analyticsHelper.thirdPartyDomainsAddressed;
-      // siteVisit.cookiesSetByThirdPartyRequests = analyticsHelper.cookiesSetByThirdPartyRequests;
-      // siteVisit.framesReferringToThirdPartyDomains = analyticsHelper.framesReferringToThirdPartyDomains;
-      // siteVisit.ownerWithProperName = analyticsHelper.ownerWithProperNames;
-      siteVisit.trackerDiversityScore = analyticsHelper.trackerDiversityScore;
-
-      return await database.getOneSitesWithRequestsAndOwners( siteVisit._id, workerData.popularSiteCollectionName, workerData.trackerCollectionName, workerData.siteOwnersCollectionName );
+      siteVisit.thirdPartyDomainsAddressed = analyticsHelper.thirdPartyDomainsAddressed;
+      siteVisit.cookiesSetByThirdPartyRequests = analyticsHelper.cookiesSetByThirdPartyRequests;
+      siteVisit.framesReferringToThirdPartyDomains = analyticsHelper.framesReferringToThirdPartyDomains;
+      siteVisit.ownerWithProperName = analyticsHelper.domainTransparency;
+      return await database.updateSiteStats( workerData.popularSiteCollectionName, siteVisit);
+      // return await database.getOneSitesWithRequestsAndOwners( siteVisit._id, workerData.popularSiteCollectionName, workerData.trackerCollectionName, workerData.siteOwnersCollectionName );
     } catch (error) {
       console.error(error);
     }

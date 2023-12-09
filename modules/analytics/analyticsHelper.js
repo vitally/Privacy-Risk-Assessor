@@ -8,11 +8,11 @@ class AnalyticsHelper {
       this._thirdPartyRequestStats = this.getThirdPartyRequestStats(this._thirdPartyDomainsAddressed);
     }
     this._framesReferringToThirdPartyDomains = this.getFramesReferringToThirdPartyDomains(siteVisit);
-    if (this._framesReferringToThirdPartyDomains > 0) {
+    if (this._framesReferringToThirdPartyDomains.length > 0) {
       this._thirdPartyFrameStats = this.getThirdPartyRequestStats(this._framesReferringToThirdPartyDomains);
     }
     this._cookiesSetByThirdPartyRequests = this.getCookiesSetByThirdPartyRequests(this._thirdPartyDomainsAddressed);
-    if (this._cookiesSetByThirdPartyRequests) {
+    if (this._cookiesSetByThirdPartyRequests.length) {
       this._thirdPartyCookieStats = this.getThirdPartyRequestStats(this._cookiesSetByThirdPartyRequests);
     }
     this._ownerWithProperName = this.getMeaningfulOwnerName(siteVisit);
@@ -73,9 +73,13 @@ class AnalyticsHelper {
     return [];
   }
   getCookiesSetByThirdPartyRequests(thirdPartyDomainsAddressed) {
-    return thirdPartyDomainsAddressed.filter(
+    const requestsWithCookies = thirdPartyDomainsAddressed.filter(
       (request) => request.cookies && request.cookies.length > 0
     );
+    const cookies = requestsWithCookies.reduce((acc, obj) => {
+      return acc.concat(obj.cookies);
+  }, []);
+    return cookies;
   }
 
   getFramesReferringToThirdPartyDomains(siteVisit) {
@@ -100,29 +104,39 @@ class AnalyticsHelper {
   caluclateStats(counts){
       const detailedStats = {};
       detailedStats.counts = counts;
-      detailedStats.mean = this.calculateMean(counts);
-      detailedStats.median = this.calculateMedian(counts);
-      detailedStats.standardDeviation = this.calculateStandardDeviation(counts);
-      detailedStats.normalizedCounts = this.normalizeDomainCounts(counts);
-      detailedStats.normalizedMean = this.calculateMean(detailedStats.normalizedCounts);
-      detailedStats.medianNormalizedMedian = this.calculateMedian(detailedStats.normalizedCounts);
-      detailedStats.normalizedStandardDeviation = this.calculateStandardDeviation(detailedStats.normalizedCounts);
-      return detailedStats;
+      detailedStats.totalCount = this.calculateTotal(counts);
+      if (detailedStats.totalCount > 0) {
+        detailedStats.mean = this.calculateMean(counts);
+        detailedStats.median = this.calculateMedian(counts);
+        detailedStats.standardDeviation = this.calculateStandardDeviation(counts);
+        detailedStats.normalizedCounts = this.normalizeDomainCounts(counts);
+        detailedStats.normalizedMean = this.calculateMean(detailedStats.normalizedCounts);
+        detailedStats.normalizedMedian = this.calculateMedian(detailedStats.normalizedCounts);
+        detailedStats.normalizedStandardDeviation = this.calculateStandardDeviation(detailedStats.normalizedCounts);
+        detailedStats.shannonDiversityIndex = this.calculateShannonDiversityIndex(counts, detailedStats.totalCount); 
+        return detailedStats;
+      }
+      return null;
   }
 
   getThirdPartyRequestStats(thirdPartyDomainsAddressed) {
     const stats = {}
     if(Object.keys(thirdPartyDomainsAddressed).length > 0){
-      const requestCounts = thirdPartyDomainsAddressed.reduce((acc, obj) => {
+      const domainCounts = thirdPartyDomainsAddressed.reduce((acc, obj) => {
         acc[obj.domainName] = (acc[obj.domainName] || 0) + 1;
         return acc;
       }, {});
-      stats.requests = this.caluclateStats(requestCounts);
+      stats.domains = this.caluclateStats(domainCounts);
       const executionTimes = thirdPartyDomainsAddressed.reduce((acc, obj) => {
         acc[obj.domainName] = (acc[obj.domainName] || 0) + obj.executionTime || 0;
         return acc;
       }, {});
-      stats.executionTimes = this.caluclateStats(executionTimes);
+      stats.executionTimesInMilliseconds = this.caluclateStats(executionTimes);
+      const expirationsInDays = thirdPartyDomainsAddressed.reduce((acc, obj) => {
+        acc[obj.domainName] = (acc[obj.domainName] || 0) + obj.expiresInDays || 0;
+        return acc;
+      }, {});
+      stats.expirationsInDays = this.caluclateStats(expirationsInDays);
     }
     return stats;
   }
@@ -140,18 +154,22 @@ class AnalyticsHelper {
     return normalizedCounts;
   }
 
-  extractCounts(requestCounts) {
-    return Object.values(requestCounts);
+  extractCounts(counts) {
+    return Object.values(counts);
   }
 
-  calculateMean(requestCounts) {
-      const countsArray = this.extractCounts(requestCounts);
+  calculateTotal(counts){
+    return this.extractCounts(counts).reduce((acc, count) => acc + count, 0);
+  }
+
+  calculateMean(counts) {
+      const countsArray = this.extractCounts(counts);
       const total = countsArray.reduce((acc, count) => acc + count, 0);
       return total / countsArray.length;
   }
 
-  calculateMedian(requestCounts) {
-      const countsArray = this.extractCounts(requestCounts).sort((a, b) => a - b);
+  calculateMedian(counts) {
+      const countsArray = this.extractCounts(counts).sort((a, b) => a - b);
       const middleIndex = Math.floor(countsArray.length / 2);
 
       if (countsArray.length % 2 === 0) {
@@ -161,9 +179,9 @@ class AnalyticsHelper {
       }
   }
 
-  calculateStandardDeviation(requestCounts) {
-      const countsArray = this.extractCounts(requestCounts);
-      const mean = this.calculateMean(requestCounts);
+  calculateStandardDeviation(counts) {
+      const countsArray = this.extractCounts(counts);
+      const mean = this.calculateMean(counts);
       const squareDiffs = countsArray.map(count => {
           const diff = count - mean;
           return diff * diff;
@@ -173,26 +191,19 @@ class AnalyticsHelper {
       return Math.sqrt(avgSquareDiff);
   }
 
-  get thirdPartyDomainsAddressedScore() {
-    return this._thirdPartyDomainsAddressed.length;
+  get thirdPartyDomainsAddressed() {
+    return {domains: this._thirdPartyDomainsAddressed, stats: this._thirdPartyRequestStats};
   }
 
-  get cookiesSetByThirdPartyRequestsScore() {
-    return this._cookiesSetByThirdPartyRequests.length;
+  get cookiesSetByThirdPartyRequests() {
+    return {domains: this._cookiesSetByThirdPartyRequests, stats: this._thirdPartyCookieStats};
   }
 
-  get framesReferringToThirdPartyDomainsScore() {
-    return this._framesReferringToThirdPartyDomains.length;
+  get framesReferringToThirdPartyDomains() {
+    return {domains: this._framesReferringToThirdPartyDomains, stats: this._thirdPartyFrameStats};
   }
 
-  get domainTransparencyScore() {
+  get domainTransparency() {
     return this._ownerWithProperName ? 0 : 1;
-  }
-
-  get trackerDiversityScore() {
-    return this.calculateShannonDiversityIndex(
-      this.__thirdPartyRequestCounts,
-      this._thirdPartyDomainsAddressed.length
-    );
   }
 }

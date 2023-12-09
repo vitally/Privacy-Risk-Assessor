@@ -25,7 +25,7 @@ async function visitStoredrSites() {
     const database = new DatabaseHelper(workerData.mongoURI);
     await database.initializeConnectionAndOpenDatabase(workerData.databaseName);
     (await database.getAllCollectionValues(workerData.popularSiteCollectionName)).forEach(site => {
-        if (site.domainAddress.indexOf('delfi') > -1) {
+        if (site.accessible === false) {
             addOneSiteToDatabase(site);
         }
     });

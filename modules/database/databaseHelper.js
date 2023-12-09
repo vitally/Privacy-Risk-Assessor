@@ -51,6 +51,25 @@ class DatabaseHelper {
         return this.openedDatabase.collection(collectionName).find();
     }
 
+    async getOneSiteByDomainAddress(collectionName,domainAddress){
+        return this.openedDatabase.collection(collectionName).findOne(
+            this.createNameValueJSON('domainAddress',domainAddress),
+            {_id : 1}
+        );
+    }
+
+    async updateSiteStats(collectionName,site){
+        return this.openedDatabase.collection(collectionName).findOneAndUpdate(
+            {_id: site._id},
+            {$set : {
+                thirdPartyRequestCookies : site.cookiesSetByThirdPartyRequests,
+                thirdPartyFrames : site.framesReferringToThirdPartyDomains,
+                thirdPartyRequests : site.thirdPartyDomainsAddressed,
+                transparentOwner : site.ownerWithProperName,
+            }}
+        );
+    }
+
     async upsertSiteToDatabase(collectionName,site){
         return this.openedDatabase.collection(collectionName).findOneAndUpdate(
             this.createNameValueJSON('domainAddress',site.domainAddress),
@@ -247,7 +266,7 @@ class DatabaseHelper {
                 $project: {
                   domainAddress: 1,
                   cookieName: '$cookies.name',
-                  cookieDomain: '$cookies.domain',
+                  cookieDomain: '$cookies.domainName',
                   cookieExpires: '$cookies.expires'
                 }
               },

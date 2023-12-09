@@ -60,8 +60,8 @@ class NavigationHelper {
           requestCookies.push({
             name: cookieName,
             value: cookieValue,
-            expires: new Date(cookieExpires),
-            domain: cookieDomain
+            expiresInDays: ((new Date(cookieExpires)).getTime() - new Date().getTime()) / (1000 * 3600 * 24),
+            domainName: cookieDomain.replace(/^\./, '')
           });
         }
       });
