@@ -97,7 +97,7 @@ async function visitOneSite(site) {
       const analyticsHelper = new AnalyticsHelper(siteVisit);
 
       const cookies = [];
-      cookies.push(... analyticsHelper.getAllCookiesFromRequests(siteVisit));
+      cookies.push(... analyticsHelper.getAllCookiesFromRequests());
 
       if (cookies.length > 0) {
         await database.upsertCookiesToDatabse(workerData.siteCookiesCollectionName, cookies);
@@ -107,6 +107,14 @@ async function visitOneSite(site) {
       siteVisit.cookiesSetByThirdPartyRequests = analyticsHelper.cookiesSetByThirdPartyRequests;
       siteVisit.framesReferringToThirdPartyDomains = analyticsHelper.framesReferringToThirdPartyDomains;
       siteVisit.ownerWithProperName = analyticsHelper.domainTransparency;
+      siteVisit.totalRequestCount = analyticsHelper.totalRequestCount;
+      siteVisit.thirdPartyRequestCount = analyticsHelper.thirdPartyRequestCount;
+      siteVisit.thirdPartyRequestFraction = analyticsHelper.thirdPartyRequestFraction;
+      siteVisit.totalCookieCount = analyticsHelper.totalCookieCount;
+      siteVisit.thirdPartyCookieCount = analyticsHelper.thirdPartyCookieCount;
+      siteVisit.thirdPartyCookieFraction = analyticsHelper.thirdPartyCookieFraction;
+      siteVisit.cookieInDisguiseCount = analyticsHelper.cookieInDisguiseCount;
+
       return await database.updateSiteStats( workerData.popularSiteCollectionName, siteVisit);
       // return await database.getOneSitesWithRequestsAndOwners( siteVisit._id, workerData.popularSiteCollectionName, workerData.trackerCollectionName, workerData.siteOwnersCollectionName );
     } catch (error) {

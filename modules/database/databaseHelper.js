@@ -62,10 +62,17 @@ class DatabaseHelper {
         return this.openedDatabase.collection(collectionName).findOneAndUpdate(
             {_id: site._id},
             {$set : {
-                thirdPartyRequestCookies : site.cookiesSetByThirdPartyRequests,
-                thirdPartyFrames : site.framesReferringToThirdPartyDomains,
-                thirdPartyRequests : site.thirdPartyDomainsAddressed,
-                transparentOwner : site.ownerWithProperName,
+                thirdPartyRequestCookies : site.cookiesSetByThirdPartyRequests || 0,
+                thirdPartyFrames : site.framesReferringToThirdPartyDomains || 0,
+                thirdPartyRequests : site.thirdPartyDomainsAddressed || 0,
+                transparentOwner : site.ownerWithProperName || 0,
+                totalRequestCount : site.totalRequestCount || 0,
+                thirdPartyRequestCount : site.thirdPartyRequestCount || 0,
+                thirdPartyRequestFraction : site.thirdPartyRequestFraction || 0,
+                totalCookiesCount : site.totalCookieCount || 0,
+                thirdPartyCookieCount : site.thirdPartyCookieCount || 0,
+                thirdPartyCookieFraction : site.thirdPartyCookieFraction || 0,
+                cookieInDisguiseCount : site.cookieInDisguiseCount || 0
             }}
         );
     }

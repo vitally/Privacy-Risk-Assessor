@@ -3,20 +3,43 @@ export { AnalyticsHelper };
 class AnalyticsHelper {
   constructor(siteVisit) {
     this._siteVisit = siteVisit;
-    this._thirdPartyDomainsAddressed = this.getThirdPartyDomainsAddressed(siteVisit);
+    this._totalRequestCount = this.isIterable(siteVisit.requests) ? siteVisit.requests.length : 0;
+    this._thirdPartyDomainsAddressed = this.getThirdPartyDomainsAddressed();
+    this._thirdPartyRequestFraction = this._totalRequestCount > 0 ? this._thirdPartyDomainsAddressed.length / this._totalRequestCount : -1;
     if (this._thirdPartyDomainsAddressed.length > 0) {
       this._thirdPartyRequestStats = this.getThirdPartyRequestStats(this._thirdPartyDomainsAddressed);
     }
-    this._framesReferringToThirdPartyDomains = this.getFramesReferringToThirdPartyDomains(siteVisit);
+    this._framesReferringToThirdPartyDomains = this.getFramesReferringToThirdPartyDomains();
     if (this._framesReferringToThirdPartyDomains.length > 0) {
       this._thirdPartyFrameStats = this.getThirdPartyRequestStats(this._framesReferringToThirdPartyDomains);
     }
-    this._cookiesSetByThirdPartyRequests = this.getCookiesSetByThirdPartyRequests(this._thirdPartyDomainsAddressed);
+
+    const siteCookieCount = siteVisit.cookies ? siteVisit.cookies.length : 0;
+    const requestCookieCount = this._totalRequestCount > 0 ? this.getCookiesSetByRequests(siteVisit.requests).length : 0;
+
+    this._totalCookieCount = siteCookieCount + requestCookieCount;
+    this._cookiesSetByThirdPartyRequests = this.getCookiesSetByRequests(this._thirdPartyDomainsAddressed);
+    this._thirdPartyCookieFraction = this._totalCookieCount > 0 ? this._cookiesSetByThirdPartyRequests.length / this._totalCookieCount : -1;
+    this._cookiesInDisguise = this.getCookiesInDisguise();
+
     if (this._cookiesSetByThirdPartyRequests.length) {
       this._thirdPartyCookieStats = this.getThirdPartyRequestStats(this._cookiesSetByThirdPartyRequests);
     }
-    this._ownerWithProperName = this.getMeaningfulOwnerName(siteVisit);
+    this._ownerWithProperName = this.getMeaningfulOwnerName();
   }
+  
+  _trackingCookies = [
+    "_ga",         // Google Analytics
+    "_gid",        // Google Analytics
+    "_fbp",        // Facebook Pixel
+    "_gcl_au",     // Google AdSense
+    "_uetsid",     // Microsoft Bing Ads
+    "IDE",         // Google DoubleClick
+    "fr",          // Facebook
+    "_cfduid",     // Cloudflare
+    "_ym_uid",     // Yandex Metrica
+    "_hjid"        // Hotjar
+  ];
 
   isIterable(obj) {
     // checks for null and undefined
@@ -46,9 +69,9 @@ class AnalyticsHelper {
     return shannonIndex;
   }
 
-  getAllCookiesFromRequests(siteVisit) {
+  getAllCookiesFromRequests() {
     const cookies = [];
-    const requests = siteVisit.requests;
+    const requests = this._siteVisit.requests;
     if (this.isIterable(requests)) {
       for (const requestFromSite of requests) {
         const requestCookies = this.getCookiesFromRequest(
@@ -62,7 +85,18 @@ class AnalyticsHelper {
     return cookies;
   }
 
-  getThirdPartyDomainsAddressed(visit) {
+  getCookiesInDisguise(){
+    const requestCookies = this.getAllCookiesFromRequests();
+    const allCookies = requestCookies.concat(this._siteVisit.cookies ? this._siteVisit.cookies : []);
+    const disguiseCookies = allCookies.filter(cookie => { 
+      const cookieDomainName = cookie.domain ? cookie.domain : cookie.domainName;
+      return this._trackingCookies.includes(cookie.name.toLowerCase()) && cookieDomainName.endsWith(this._siteVisit.domainName);
+    } );
+    return disguiseCookies;
+  }
+
+  getThirdPartyDomainsAddressed() {
+    const visit = this._siteVisit;
     if (this.isIterable(visit.requests)) {
       return visit.requests.filter(
         (request) =>
@@ -72,7 +106,10 @@ class AnalyticsHelper {
     }
     return [];
   }
-  getCookiesSetByThirdPartyRequests(thirdPartyDomainsAddressed) {
+
+  // getRequest
+
+  getCookiesSetByRequests(thirdPartyDomainsAddressed) {
     const requestsWithCookies = thirdPartyDomainsAddressed.filter(
       (request) => request.cookies && request.cookies.length > 0
     );
@@ -82,13 +119,15 @@ class AnalyticsHelper {
     return cookies;
   }
 
-  getFramesReferringToThirdPartyDomains(siteVisit) {
-    return siteVisit.frames?.filter(
+  getFramesReferringToThirdPartyDomains() {
+    const siteVisit = this._siteVisit;
+    return siteVisit.frames ? siteVisit.frames.filter(
       (frame) => frame.domainName && frame.domainName !== siteVisit.domainName
-    );
+    ) : [];
   }
 
-  getMeaningfulOwnerName(siteVisit) {
+  getMeaningfulOwnerName() {
+    const siteVisit = this._siteVisit;
     let siteOwnerName = siteVisit.owner?.name;
     siteOwnerName = siteOwnerName ? siteOwnerName.toLowerCase() : null;
     if (
@@ -206,4 +245,33 @@ class AnalyticsHelper {
   get domainTransparency() {
     return this._ownerWithProperName ? 0 : 1;
   }
+
+  get totalRequestCount(){
+   return this._totalRequestCount;
+  }
+
+  get thirdPartyRequestCount(){
+    return this._thirdPartyDomainsAddressed.length;
+  }
+
+  get thirdPartyRequestFraction(){
+    return this._thirdPartyRequestFraction; 
+  }
+
+  get totalCookieCount(){
+    return this._totalCookieCount;
+  }
+
+  get thirdPartyCookieCount(){
+    return this._cookiesSetByThirdPartyRequests.length;
+  }
+
+  get thirdPartyCookieFraction(){
+    return this._thirdPartyCookieFraction;
+  }
+
+  get cookieInDisguiseCount(){
+    return this._cookiesInDisguise.length;
+  }
+
 }
