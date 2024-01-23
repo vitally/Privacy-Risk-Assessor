@@ -59,15 +59,35 @@ if (isMainThread) {
     });
   });
 
-  app.get('/api/sites/completeInfo', (req, res) => {
-    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Sites with Requests and Owners API Called.`);
-    apiHelper.getAllTheSitesWithRequestsAndOwners().then((data, err) => {
+  app.get('/api/sites/stats', (req, res) => {
+    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Sites Statistics API Called.`);
+    apiHelper.getAllSiteStats().then((data, err) => {
       if (err) {
         console.error(err);
       }
       res.json(data);
     });
   });
+
+  app.get('/api/sites/totals', (req, res) => {
+    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Sites Statistics API Called.`);
+    apiHelper.getSiteTotals().then((data, err) => {
+      if (err) {
+        console.error(err);
+      }
+      res.json(data);
+    });
+  });
+
+  // app.get('/api/sites/completeInfo', (req, res) => {
+  //   console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Sites with Requests and Owners API Called.`);
+  //   apiHelper.getAllTheSitesWithRequestsAndOwners().then((data, err) => {
+  //     if (err) {
+  //       console.error(err);
+  //     }
+  //     res.json(data);
+  //   });
+  // });
 
   app.get('/api/sites/cookiesByDomain', (req, res) => {
     console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Cookies by Domain API Called.`);

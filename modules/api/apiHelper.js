@@ -35,6 +35,16 @@ class ApiHelper {
       return await this.database.getAllCokiesByDomain(this.config.popularSiteCollectionName);
     }
 
+    async getAllSiteStats(){
+      await this.database.initializeConnectionAndOpenDatabase(this.config.databaseName);
+      return await this.database.getAllSiteStats(this.config.popularSiteCollectionName);
+    }
+
+    async getSiteTotals(){
+      await this.database.initializeConnectionAndOpenDatabase(this.config.databaseName);
+      return await this.database.getSiteTotals(this.config.popularSiteCollectionName);
+    }
+
     async getAllRequestCountByDomainAddress(){
       await this.database.initializeConnectionAndOpenDatabase(this.config.databaseName);
       return await this.database.getAllRequestCountByDomainAddress(this.config.trackerCollectionName);

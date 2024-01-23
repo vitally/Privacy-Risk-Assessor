@@ -75,6 +75,7 @@ class NavigationHelper {
       fullUrl: requestURL,
       urlWithoutParams: URLHelper.trimUrlToRemoveParameters(requestURL),
       domainName: URLHelper.trimUrlToSecondLevelDomain(requestURL),
+      parameters: URLHelper.extractUrlParams(requestURL),
       headers: interceptedRequest.headers(),
       method: interceptedRequest.method(),
       postData: interceptedRequest.postData()?.replace(/[^\x00-\x7F]+/g, ''),

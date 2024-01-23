@@ -19,4 +19,16 @@ class URLHelper {
         return urlMatchArray ? (urlMatchArray.length > 0 ? urlMatchArray[0] : '') : url;
     }
 
+    static extractUrlParams(urlString) {
+        const url = new URL(urlString);
+        const params = new URLSearchParams(url.search);
+    
+        const result = [];
+        params.forEach((value, name) => {
+            result.push({ name: name, value: value });
+        });
+    
+        return result;
+    }
+
 }

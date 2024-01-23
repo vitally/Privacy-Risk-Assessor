@@ -184,7 +184,8 @@ class DatabaseHelper {
                 fullAddressWithoutParams : tracker.urlWithoutParams,
                 headers : tracker.headers,
                 method : tracker.method,
-                postData : tracker.postData
+                postData : tracker.postData,
+                parameters: tracker.parameters
             },
             $addToSet : {
                 siteIds: site._id
@@ -333,7 +334,122 @@ class DatabaseHelper {
               { $sort: { count: -1 } }
             ],
             { maxTimeMS: 60000, allowDiskUse: true }
-          );
+        ).toArray();
+    }
+
+    async getAllSiteStats(sitesCollection){
+        return await this.openedDatabase.collection(sitesCollection).aggregate(
+            [
+                {
+                  '$match': {
+                    'accessible': true
+                  }
+                }, {
+                  '$addFields': {
+                    'visitDate': {
+                      '$dateToString': {
+                        'date': '$visitDate'
+                      }
+                    }, 
+                    'thirdPartyRequestCount': '$thirdPartyRequests.stats.domains.totalCount', 
+                    'thirdPartyRequestsPerDomain': '$thirdPartyRequests.stats.domains.counts', 
+                    'thirdPartyRequestsPerDomainMean': '$thirdPartyRequests.stats.domains.mean', 
+                    'thirdPartyRequestsPerDomainMedian': '$thirdPartyRequests.stats.domains.median', 
+                    'thirdPartyRequestsPerDomainDiversityIndex': '$thirdPartyRequests.stats.domains.shannonDiversityIndex', 
+                    'thirdPartyRequestsExecutionTimeMs': '$thirdPartyRequests.stats.executionTimesInMilliseconds.totalCount', 
+                    'thirdPartyRequestsExecutionTimePerDomainMs': '$thirdPartyRequests.stats.executionTimesInMilliseconds.counts', 
+                    'thirdPartyRequestsPerDomainExecutionTimeMsMean': '$thirdPartyRequests.stats.executionTimesInMilliseconds.mean', 
+                    'thirdPartyRequestsPerDomainExecutionTimeMsMedian': '$thirdPartyRequests.stats.executionTimesInMilliseconds.median', 
+                    'thirdPartyDomainRequestCookieCount': '$thirdPartyRequestCookies.stats.domains.totalCount', 
+                    'thirdPartyDomainRequestCookiePerDomain': '$thirdPartyRequestCookies.stats.domains.counts', 
+                    'thirdPartyDomainRequestCookieDiversityIndex': '$thirdPartyRequestCookies.stats.domains.shannonDiversityIndex', 
+                    'thirdPartyDomainRequestCookieMeanExpirationDays': '$thirdPartyRequestCookies.stats.expirationsInDays.mean', 
+                    'thirdPartyDomainRequestCookieMedianExpirationDays': '$thirdPartyRequestCookies.stats.expirationsInDays.median', 
+                    'thirdPartyDomainFrameCount': '$thirdPartyFrames.stats.domains.totalCount', 
+                    'thirdPartyDomainFramesPerDomain': '$thirdPartyFrames.stats.domains.counts', 
+                    'distinctThirdPartyDomainsAddressed': {
+                      '$cond': {
+                        'if': {
+                          '$not': [
+                            '$thirdPartyRequests.stats.domains.counts'
+                          ]
+                        }, 
+                        'then': 0, 
+                        'else': {
+                          '$size': {
+                            '$ifNull': [
+                              {
+                                '$objectToArray': '$thirdPartyRequests.stats.domains.counts'
+                              }, []
+                            ]
+                          }
+                        }
+                      }
+                    }, 
+                    'distinctThirdPartyCookieDomains': {
+                      '$cond': {
+                        'if': {
+                          '$not': [
+                            '$thirdPartyRequestCookies.stats.domains.counts'
+                          ]
+                        }, 
+                        'then': 0, 
+                        'else': {
+                          '$size': {
+                            '$ifNull': [
+                              {
+                                '$objectToArray': '$thirdPartyRequestCookies.stats.domains.counts'
+                              }, []
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }, {
+                  '$unset': [
+                    'accessible', 'fullAddress', 'scheme', 'error', 'thirdPartyFrames', 'thirdPartyRequests', 'thirdPartyRequestCookies', '_id', 'cookies', 'localStorage', 'frames'
+                  ]
+                }
+              ],
+            { maxTimeMS: 60000, allowDiskUse: true }
+        ).toArray();
+    }
+
+    async getSiteTotals(sitesCollection){
+        return await this.openedDatabase.collection(sitesCollection).aggregate(
+            [
+                {
+                  '$match': {
+                    'accessible': true
+                  }
+                }, {
+                  '$group': {
+                    '_id': null, 
+                    'visitedSiteCount': {
+                      '$sum': 1
+                    }, 
+                    'cookiesInDisguise': {
+                      '$sum': '$cookieInDisguiseCount'
+                    }, 
+                    'totalRequests': {
+                      '$sum': '$totalRequestCount'
+                    }, 
+                    'thirdPartyRequests': {
+                      '$sum': '$thirdPartyRequestCount'
+                    }, 
+                    'totalCookies': {
+                      '$sum': '$totalCookiesCount'
+                    }, 
+                    'thirdPartyRequestCookies': {
+                      '$sum': '$thirdPartyCookieCount'
+                    }
+                  }
+                }, {
+                    '$unset': '_id'
+                }
+            ]
+        ).toArray();
     }
 }
 
