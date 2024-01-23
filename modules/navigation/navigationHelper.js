@@ -12,7 +12,7 @@ class NavigationHelper {
 
   async configureBrowser(userAgent) {
     return await puppeteer.launch({
-      headless: true,
+      headless: "new",
       executablePath: executablePath(),
       args: [`--user-agent=${userAgent}`],
     });
