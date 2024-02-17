@@ -1,3 +1,8 @@
+import dns from 'dns';
+import util from 'util';
+
+const resolveCnameAsync = util.promisify(dns.resolveCname);
+
 export { AnalyticsHelper };
 
 class AnalyticsHelper {
@@ -84,15 +89,48 @@ class AnalyticsHelper {
     }
     return cookies;
   }
-
-  getCookiesInDisguise(){
+  getAllCookies(){
     const requestCookies = this.getAllCookiesFromRequests();
     const allCookies = requestCookies.concat(this._siteVisit.cookies ? this._siteVisit.cookies : []);
+    return allCookies;
+  }
+
+  getCookiesInDisguise(){
+    const allCookies = this.getAllCookies();
     const disguiseCookies = allCookies.filter(cookie => { 
       const cookieDomainName = cookie.domain ? cookie.domain : cookie.domainName;
       return this._trackingCookies.includes(cookie.name.toLowerCase()) && cookieDomainName.endsWith(this._siteVisit.domainName);
     } );
     return disguiseCookies;
+  }
+
+  async getReauestsWithCnameRedirects() {
+    const visit = this._siteVisit;
+    if (this.isIterable(visit.requests)) {
+      const requestsWithCname = await Promise.all(visit.requests.map(async (request) => {
+        const domain = new URL(request.fullUrl).hostname;
+        try {
+          const addresses = await resolveCnameAsync(domain);
+          if (addresses && addresses.length > 0) {
+            return { ...request, cnameRedirects: addresses }; // Add the CNAME redirections to the request object
+          }
+        } catch (err) {
+          // Handle errors or no CNAME found by returning null or similar
+          return null;
+        }
+      }));
+
+      // Filter out nulls (where no CNAME redirection was detected) and return
+      const identifiedRequestsWithCname = requestsWithCname.filter(request => request !== null);
+      const requestsWithCnameAndCookies = identifiedRequestsWithCname.filter(request => request.cookies && request.cookies.length > 0);
+      return {all : identifiedRequestsWithCname, withCookies: requestsWithCnameAndCookies};
+    }
+    return [];
+  }
+
+  // Helper method to check if an object is iterable
+  isIterable(obj) {
+    return obj != null && typeof obj[Symbol.iterator] === 'function';
   }
 
   getThirdPartyDomainsAddressed() {
@@ -119,6 +157,38 @@ class AnalyticsHelper {
     return cookies;
   }
 
+  getCookiesSetByCnameRequests(cnameDomainsAddressed) {
+    if (!Array.isArray(cnameDomainsAddressed)  || cnameDomainsAddressed.length == 0) {
+      return [];
+    }
+    const requestsWithCookies = cnameDomainsAddressed.filter(
+      (request) => {
+        if (request.cookies && request.cookies.length > 0) {
+          // Filter cookies where cookie domain name is different from request domain name
+          const firstPartyCookiesSetByCname = request.cookies.filter((cookie) => {
+            // Determine the cookie domain name, considering the possibility of different property names
+            const cookieDomainName = cookie.domain ? cookie.domain : cookie.domainName;
+            const requestEndDomain = request.cnameRedirects && request.cnameRedirects.length > 0 ? request.cnameRedirects[0] : request.domainName;
+            // Compare cookie domain name with request end domain name
+            return cookieDomainName !== requestEndDomain;
+          });
+
+          // If there are any cookies after filtering, return true to include this request in the results
+          return firstPartyCookiesSetByCname.length > 0;
+        }
+        return false; // If no cookies or no cookies match the condition, return false to exclude this request
+      }
+    );
+
+    // Reduce the filtered requests to a flat array of cookies
+    const cookies = requestsWithCookies.reduce((acc, obj) => {
+      return acc.concat(obj.cookies);
+    }, []);
+
+    return cookies;
+}
+
+
   getFramesReferringToThirdPartyDomains() {
     const siteVisit = this._siteVisit;
     return siteVisit.frames ? siteVisit.frames.filter(
@@ -133,7 +203,8 @@ class AnalyticsHelper {
     if (
       siteOwnerName &&
       siteOwnerName.indexOf("gdpr") === -1 &&
-      siteOwnerName.indexOf("masked")
+      siteOwnerName.indexOf("masked") === -1 &&
+      siteOwnerName.indexOf("privacy") === -1
     ) {
       return siteVisit.owner;
     }

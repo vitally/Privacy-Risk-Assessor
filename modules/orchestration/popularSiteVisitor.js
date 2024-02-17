@@ -24,7 +24,7 @@ class Queue {
       try {
           console.log(`[${moment().format("DD.MM.YYYY HH:MM:SS")}] Processing ${message.domainAddress}. Queue size: '${this.items.length}'`);
           const data = await visitOneSite(message);
-          if (data.ok == 1) {
+          if (data?.ok == 1) {
             console.log(`[${moment().format("DD.MM.YYYY HH:MM:SS")}] Finished processing ${message.domainAddress}.`);
           } else {
             console.log(`[${moment().format("DD.MM.YYYY HH:MM:SS")}] Failed processing ${message.domainAddress}.`);
@@ -96,6 +96,9 @@ async function visitOneSite(site) {
       
       const analyticsHelper = new AnalyticsHelper(siteVisit);
 
+      const cnameRequests = await analyticsHelper.getReauestsWithCnameRedirects();
+      const cookiesSetByCname = analyticsHelper.getCookiesSetByCnameRequests(cnameRequests.withCookies);
+
       const cookies = [];
       cookies.push(... analyticsHelper.getAllCookiesFromRequests());
 
@@ -114,6 +117,7 @@ async function visitOneSite(site) {
       siteVisit.thirdPartyCookieCount = analyticsHelper.thirdPartyCookieCount;
       siteVisit.thirdPartyCookieFraction = analyticsHelper.thirdPartyCookieFraction;
       siteVisit.cookieInDisguiseCount = analyticsHelper.cookieInDisguiseCount;
+      siteVisit.cookieSetByRequestsWithCnameRedirectCount = cookiesSetByCname.length;
 
       return await database.updateSiteStats( workerData.popularSiteCollectionName, siteVisit);
       // return await database.getOneSitesWithRequestsAndOwners( siteVisit._id, workerData.popularSiteCollectionName, workerData.trackerCollectionName, workerData.siteOwnersCollectionName );

@@ -25,11 +25,11 @@ async function visitStoredrSites() {
     const database = new DatabaseHelper(workerData.mongoURI);
     await database.initializeConnectionAndOpenDatabase(workerData.databaseName);
     (await database.getAllCollectionValues(workerData.popularSiteCollectionName)).forEach(site => {
-        if (site.accessible === false) {
-            // if (site.domainAddress.includes('delfi')) {
-                addOneSiteToDatabase(site);
-            // }
-        }
+        addOneSiteToDatabase(site);
+        // if (site.domainAddress.includes('delfi')) {
+        // }
+        // if (site.accessible === false) {
+        // }
     });
 
     parentPort.postMessage({

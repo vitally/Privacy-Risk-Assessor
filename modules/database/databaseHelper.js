@@ -72,7 +72,8 @@ class DatabaseHelper {
                 totalCookiesCount : site.totalCookieCount || 0,
                 thirdPartyCookieCount : site.thirdPartyCookieCount || 0,
                 thirdPartyCookieFraction : site.thirdPartyCookieFraction || 0,
-                cookieInDisguiseCount : site.cookieInDisguiseCount || 0
+                cookieInDisguiseCount : site.cookieInDisguiseCount || 0,
+                cookieSetByRequestsWithCnameRedirectCount : site.cookieSetByRequestsWithCnameRedirectCount || 0
             }}
         );
     }
