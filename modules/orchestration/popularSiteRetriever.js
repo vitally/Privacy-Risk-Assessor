@@ -39,6 +39,10 @@ async function visitStoredrSites() {
     return workerData.collectSiteDataPeriodDays;
 }
 
+function objectIsNotEmpty(obj){
+    return obj && Object.keys(obj).length > 0;
+}
+
 async function addOneSiteToDatabase(site){
     const whoisHelper = new WhoisHelper();
     const database = new DatabaseHelper(workerData.mongoURI);
@@ -46,18 +50,23 @@ async function addOneSiteToDatabase(site){
 
     try {
         const siteRecord = site._id ? site : await database.upsertSiteToDatabase(workerData.popularSiteCollectionName,site);
-        let whoisResponse = null;
-        try {
-            whoisResponse = await whoisHelper.getWhoisInfo(site.domainAddress);
-        } catch (error) {
-            console.error(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Site Retriever (${site.domainAddress}) - WHOIS Error: '${error.message}'`);
-        }
         const siteRecordId = siteRecord._id ? siteRecord._id : siteRecord.value ? siteRecord.value._id : siteRecord.lastErrorObject.upserted;
-        if (whoisResponse) {
-            const siteOwnerRecord = await database.upsertSiteOwnerToDatabse(workerData.siteOwnersCollectionName,whoisResponse);
-            const siteOwnerRecordId = siteOwnerRecord.value ? siteOwnerRecord.value._id : siteOwnerRecord.lastErrorObject.upserted;
-            await database.addSiteToOwner(workerData.siteOwnersCollectionName, siteOwnerRecordId,siteRecordId);
-            whoisResponse = siteOwnerRecord.value;
+        let whoisResponse = null;
+        const owners = await (await database.findOwnerBySiteId(workerData.siteOwnersCollectionName, siteRecordId)).toArray();
+        if (owners && owners.length > 0) {
+            whoisResponse = owners[0];
+        }
+        if (!objectIsNotEmpty(whoisResponse)) {
+            try {
+                whoisResponse = await whoisHelper.getWhoisInfo(site.domainAddress);
+                const siteOwnerRecord = await database.upsertSiteOwnerToDatabse(workerData.siteOwnersCollectionName,whoisResponse);
+                const siteOwnerRecordId = siteOwnerRecord.value ? siteOwnerRecord.value._id : siteOwnerRecord.lastErrorObject.upserted;
+                await database.addSiteToOwner(workerData.siteOwnersCollectionName, siteOwnerRecordId,siteRecordId);
+                whoisResponse = siteOwnerRecord.value;
+            } catch (error) {
+                console.error(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Site Retriever (${site.domainAddress}) - WHOIS Error: '${error.message}'`);
+            }
+            
         }
         if (!siteRecord.value) {
             siteRecord.value = await database.findOneRecordById(siteRecordId.toString(), workerData.popularSiteCollectionName);

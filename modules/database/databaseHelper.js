@@ -58,6 +58,17 @@ class DatabaseHelper {
         );
     }
 
+    async findOwnerBySiteId(collectionName,siteId){
+      const convertedId = typeof siteId === 'string' ? new ObjectId(siteId) : siteId;
+      return this.openedDatabase.collection(collectionName).find({
+        "siteIds": convertedId, 
+        $and: [
+          { "name": { $ne: null } },
+          { "name": { $ne: "" } }
+        ]
+      });
+    }
+
     async updateSiteStats(collectionName,site){
         return this.openedDatabase.collection(collectionName).findOneAndUpdate(
             {_id: site._id},
@@ -65,7 +76,7 @@ class DatabaseHelper {
                 thirdPartyRequestCookies : site.cookiesSetByThirdPartyRequests || 0,
                 thirdPartyFrames : site.framesReferringToThirdPartyDomains || 0,
                 thirdPartyRequests : site.thirdPartyDomainsAddressed || 0,
-                transparentOwner : site.ownerWithProperName || 0,
+                transparentOwner : site.ownerWithProperName || 1,
                 totalRequestCount : site.totalRequestCount || 0,
                 thirdPartyRequestCount : site.thirdPartyRequestCount || 0,
                 thirdPartyRequestFraction : site.thirdPartyRequestFraction || 0,
