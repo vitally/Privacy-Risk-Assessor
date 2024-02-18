@@ -60,9 +60,11 @@ async function addOneSiteToDatabase(site){
             try {
                 whoisResponse = await whoisHelper.getWhoisInfo(site.domainAddress);
                 const siteOwnerRecord = await database.upsertSiteOwnerToDatabse(workerData.siteOwnersCollectionName,whoisResponse);
-                const siteOwnerRecordId = siteOwnerRecord.value ? siteOwnerRecord.value._id : siteOwnerRecord.lastErrorObject.upserted;
-                await database.addSiteToOwner(workerData.siteOwnersCollectionName, siteOwnerRecordId,siteRecordId);
-                whoisResponse = siteOwnerRecord.value;
+                if (siteOwnerRecord) {
+                    const siteOwnerRecordId = siteOwnerRecord.value ? siteOwnerRecord.value._id : siteOwnerRecord.lastErrorObject.upserted;
+                    await database.addSiteToOwner(workerData.siteOwnersCollectionName, siteOwnerRecordId,siteRecordId);
+                    whoisResponse = siteOwnerRecord.value;
+                }
             } catch (error) {
                 console.error(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Site Retriever (${site.domainAddress}) - WHOIS Error: '${error.message}'`);
             }

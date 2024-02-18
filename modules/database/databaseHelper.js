@@ -76,7 +76,7 @@ class DatabaseHelper {
                 thirdPartyRequestCookies : site.cookiesSetByThirdPartyRequests || 0,
                 thirdPartyFrames : site.framesReferringToThirdPartyDomains || 0,
                 thirdPartyRequests : site.thirdPartyDomainsAddressed || 0,
-                transparentOwner : site.ownerWithProperName || 1,
+                transparentOwner : site.ownerWithProperName || 0,
                 totalRequestCount : site.totalRequestCount || 0,
                 thirdPartyRequestCount : site.thirdPartyRequestCount || 0,
                 thirdPartyRequestFraction : site.thirdPartyRequestFraction || 0,
@@ -84,7 +84,8 @@ class DatabaseHelper {
                 thirdPartyCookieCount : site.thirdPartyCookieCount || 0,
                 thirdPartyCookieFraction : site.thirdPartyCookieFraction || 0,
                 cookieInDisguiseCount : site.cookieInDisguiseCount || 0,
-                cookieSetByRequestsWithCnameRedirectCount : site.cookieSetByRequestsWithCnameRedirectCount || 0
+                cookieSetByRequestsWithCnameRedirectCount : site.cookieSetByRequestsWithCnameRedirectCount || 0,
+                userConsentCompliance: site.thirdPartyCookieCount && site.thirdPartyCookieCount > 0 ? 1 : 0 
             }}
         );
     }
@@ -106,10 +107,14 @@ class DatabaseHelper {
 
     async upsertSiteOwnerToDatabse(collectionName,whoisResponse){
         try {
+            const entityName = whoisResponse['Name'] ? whoisResponse['Name'] : whoisResponse['Registrant Name'];
+            if (!entityName) {
+              return null;
+            }
             return this.openedDatabase.collection(collectionName).findOneAndUpdate(
-                {name: whoisResponse['Name'] ? whoisResponse['Name'] : whoisResponse['Registrant Name']},
+                {name: entityName},
                 {$set : {
-                    name : whoisResponse['Name'] ? whoisResponse['Name'] : whoisResponse['Registrant Name'],
+                    name : entityName,
                     phone : whoisResponse['Phone'] ? whoisResponse['Phone'] : whoisResponse['Registrant Phone'],
                     address : whoisResponse['Address'] ? whoisResponse['Address'] : `${whoisResponse['Registrant Postal Code']}, ${whoisResponse['Registrant City']}, ${whoisResponse['Registrant Country']}`,
                     regNr : whoisResponse['RegNr'] ? whoisResponse['RegNr'] : '',

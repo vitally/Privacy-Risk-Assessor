@@ -204,7 +204,8 @@ class AnalyticsHelper {
       siteOwnerName &&
       siteOwnerName.indexOf("gdpr") === -1 &&
       siteOwnerName.indexOf("masked") === -1 &&
-      siteOwnerName.indexOf("privacy") === -1
+      siteOwnerName.indexOf("privacy") === -1 &&
+      siteOwnerName.indexOf("protection") === -1
     ) {
       return siteVisit.owner;
     }
