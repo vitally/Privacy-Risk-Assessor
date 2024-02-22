@@ -2,7 +2,7 @@ import { DatabaseHelper } from "../database/databaseHelper.js";
 import { NavigationHelper } from "../navigation/navigationHelper.js";
 import { AnalyticsHelper } from "../analytics/analyticsHelper.js";
 import { parentPort, workerData } from "worker_threads";
-import moment from "moment";
+import { DateTime } from 'luxon';
 
 
 class Queue {
@@ -13,7 +13,7 @@ class Queue {
 
   enqueue(item) {
       this.items.push(item);
-      console.log(`[${moment().format("DD.MM.YYYY HH:MM:SS")}] Queued ${item.domainAddress}. Queue size: '${this.items.length}'`);
+      console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Queued ${item.domainAddress}. Queue size: '${this.items.length}'`);
       this.processNext();
   }
 
@@ -22,12 +22,12 @@ class Queue {
       this.processing = true;
       const message = this.items.shift();
       try {
-          console.log(`[${moment().format("DD.MM.YYYY HH:MM:SS")}] Processing ${message.domainAddress}. Queue size: '${this.items.length}'`);
+          console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Processing ${message.domainAddress}. Queue size: '${this.items.length}'`);
           const data = await visitOneSite(message);
           if (data?.ok == 1) {
-            console.log(`[${moment().format("DD.MM.YYYY HH:MM:SS")}] Finished processing ${message.domainAddress}.`);
+            console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Finished processing ${message.domainAddress}.`);
           } else {
-            console.log(`[${moment().format("DD.MM.YYYY HH:MM:SS")}] Failed processing ${message.domainAddress}.`);
+            console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Failed processing ${message.domainAddress}.`);
           }
           parentPort.postMessage(data);
       } catch (error) {

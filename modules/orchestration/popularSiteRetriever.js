@@ -2,7 +2,7 @@ import { parentPort, workerData } from "worker_threads";
 import { DatabaseHelper } from '../database/databaseHelper.js';
 import { MostPopularSiteHelper } from '../sites/mostPopularSiteHelper.js';
 import { WhoisHelper } from '../sites/whoisHelper.js';
-import moment from "moment";
+import { DateTime } from 'luxon';
 import fs from 'fs/promises';
 
 // async function retrievePopularSites() {
@@ -66,7 +66,7 @@ async function addOneSiteToDatabase(site){
                     whoisResponse = siteOwnerRecord.value;
                 }
             } catch (error) {
-                console.error(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Site Retriever (${site.domainAddress}) - WHOIS Error: '${error.message}'`);
+                console.error(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Site Retriever (${site.domainAddress}) - WHOIS Error: '${error.message}'`);
             }
             
         }
@@ -86,7 +86,7 @@ async function addOneSiteToDatabase(site){
 
 parentPort.on('message', siteToVisit => {
     const siteHelper = new MostPopularSiteHelper(workerData.popularSiteListURL);
-    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Site Retriever - Single Visit : '${siteToVisit}'`);
+    console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Site Retriever - Single Visit : '${siteToVisit}'`);
     addOneSiteToDatabase(siteHelper.constructSiteObject(siteToVisit));
 });
 

@@ -2,13 +2,11 @@ import puppeteer from "puppeteer-extra";
 import { executablePath } from "puppeteer";
 //import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import { URLHelper } from "./urlHelper.js";
-import moment from "moment";
+import { DateTime } from 'luxon';
 
 export { NavigationHelper };
 
 class NavigationHelper {
-
-  requestIdToDateMap = new Map();
 
   async configureBrowser(userAgent) {
     return await puppeteer.launch({
@@ -71,6 +69,12 @@ class NavigationHelper {
 
   processRequest(interceptedRequest){
     const requestURL = interceptedRequest.url();
+    const cookie = interceptedRequest.headers()['cookie'];
+    if (cookie) {
+      // You have the cookie header here, compare it with the initial cookies or monitored changes
+      console.log(`Cookies sent in request to ${interceptedRequest.url()}:`, cookie);
+      // Here, you can check if any of the previously captured or set cookies are included in this header
+    }
     const requestDetails = {
       fullUrl: requestURL,
       urlWithoutParams: URLHelper.trimUrlToRemoveParameters(requestURL),
@@ -102,7 +106,7 @@ class NavigationHelper {
     });
 
     browser.on('disconnected', () => {
-      console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}) Disconnecting`);
+      console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] (${url}) Disconnecting`);
     });
 
     const page = (await browser.pages())[0];
@@ -130,28 +134,63 @@ class NavigationHelper {
         //overriding canvas finegrprint attempt
         const originalCanvasToDataURL = HTMLCanvasElement.prototype.toDataURL;
         HTMLCanvasElement.prototype.toDataURL = (type) => {
-          console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}) Canvas.toDataURL.`);
-          if (type.indexOf("image") > -1) {
-            // this is likely a fingerprint attempt, return fake fingerprint
-            return `data:${type};base64,iVBORw0KGgoAAAANSUhEUgAAANwAAAAeCAAAAABiES/iAAACeElEQVRYw+2YzUtUURjGf47OmDPh5AyFomUiEeEmyghXtWsh4dcswlYV2KYWfZh/QRBUVLhTCCJXEgmKUCIkFhJREARBkbkyKBlTRmUC82lxZ7z3TjM4whwXwz2ry3vO87znx33Pey4XFfHAg/PgPDgPzoPz4Dy4rFIKscSkAfmnsUY+iTfXFhxue4Zm4QpfaKbg8k+EsZNsGG6iNVzRMrkZeRPmjp6eCgcae5f+3wJIgtWLldG+DUnfzoail1etaVsEa1f2lUqw2hPd3T7nCrkMtlkQ24YDwP8+FZkI+gY3uq2cTcu54GIA/dJCDUAnSE4RdAESdALUxZ0hl4E5OMs49iE528E5a+cj5YFhDVI3vLA2c4K+zLXpvR37tNRDs3STg1OJqXqQSwS14wlJUD+VeHWAW86Qy8BwQ5Ek/WK/JBgqC72UTvJakmY5lAvurTRPSDrMmKRRcIvgeUo2KmmEI86Qy8DwmVu/ezQIBCSBLzwjKZhujv5cZZmUNkAq57ekRXCLYDG12pre5Qy5DAzDXbPfIOB/JqmCzNafCZd+dMA5RfZxdsBlNTAMF+FJfD2eSvSI0iGpmXe5GnbG3qyyHAO3yCZxlGV2uBLWDcJVMZKc7UrnfIBvQI+pHpxbS34ZaNkK7gYN0yvTDSCXyCZxNJTscFFe/DUH1w3QvpnzPiUPdTXfsvxZDdBGmeQU2SQd9lWQHS5m9J6Ln4/suZCwc96D25qM1formq5/3ApOX1uDkZ7P7JXkENkkK5eqQm3flRtuvitSYgCucKOf0zv01bazcG3Tyz8GKukvSjjrlB3/U5Rw42dqAo29yypKOO8figeX1/gH+zX9JqfOeUwAAAAASUVORK5CYII=`;
-          }
+          console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] (${url}) Canvas.toDataURL.`);
+          // if (type.indexOf("image") > -1) {
+          //   // this is likely a fingerprint attempt, return fake fingerprint
+          //   return `data:${type};base64,iVBORw0KGgoAAAANSUhEUgAAANwAAAAeCAAAAABiES/iAAACeElEQVRYw+2YzUtUURjGf47OmDPh5AyFomUiEeEmyghXtWsh4dcswlYV2KYWfZh/QRBUVLhTCCJXEgmKUCIkFhJREARBkbkyKBlTRmUC82lxZ7z3TjM4whwXwz2ry3vO87znx33Pey4XFfHAg/PgPDgPzoPz4Dy4rFIKscSkAfmnsUY+iTfXFhxue4Zm4QpfaKbg8k+EsZNsGG6iNVzRMrkZeRPmjp6eCgcae5f+3wJIgtWLldG+DUnfzoail1etaVsEa1f2lUqw2hPd3T7nCrkMtlkQ24YDwP8+FZkI+gY3uq2cTcu54GIA/dJCDUAnSE4RdAESdALUxZ0hl4E5OMs49iE528E5a+cj5YFhDVI3vLA2c4K+zLXpvR37tNRDs3STg1OJqXqQSwS14wlJUD+VeHWAW86Qy8BwQ5Ek/WK/JBgqC72UTvJakmY5lAvurTRPSDrMmKRRcIvgeUo2KmmEI86Qy8DwmVu/ezQIBCSBLzwjKZhujv5cZZmUNkAq57ekRXCLYDG12pre5Qy5DAzDXbPfIOB/JqmCzNafCZd+dMA5RfZxdsBlNTAMF+FJfD2eSvSI0iGpmXe5GnbG3qyyHAO3yCZxlGV2uBLWDcJVMZKc7UrnfIBvQI+pHpxbS34ZaNkK7gYN0yvTDSCXyCZxNJTscFFe/DUH1w3QvpnzPiUPdTXfsvxZDdBGmeQU2SQd9lWQHS5m9J6Ln4/suZCwc96D25qM1formq5/3ApOX1uDkZ7P7JXkENkkK5eqQm3flRtuvitSYgCucKOf0zv01bazcG3Tyz8GKukvSjjrlB3/U5Rw42dqAo29yypKOO8figeX1/gH+zX9JqfOeUwAAAAASUVORK5CYII=`;
+          // }
+          fetch('http://localhost:3000/api/sites/fingerprint', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url: document.location.href, type: 'Canvas.toDataURL', value: '' }),
+          });
+          console.log('toBlob');
           // otherwise, just use the original function
           return originalCanvasToDataURL.apply(this, arguments);
         };
         const originalToBlob = HTMLCanvasElement.prototype.toBlob;
         HTMLCanvasElement.prototype.toBlob = function(...args) {
-          console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}) Canvas.toBlob.`);
-          // Perform any additional logic or handling here
+          fetch('http://localhost:3000/api/sites/fingerprint', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url: document.location.href, type: 'Canvas.toBlob', value: '' }),
+          });
+          console.log('toBlob');
           return originalToBlob.apply(this, args);
         };
       
         const originalGetImageData = CanvasRenderingContext2D.prototype.getImageData;
         CanvasRenderingContext2D.prototype.getImageData = function(...args) {
-            console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}) Canvas.getImageData.`);
-            // Perform any additional logic or handling here
-            // You might want to return altered or constant image data here to mitigate fingerprinting
+            fetch('http://localhost:3000/api/sites/fingerprint', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ url: document.location.href, type: 'Canvas.getImageData', value: '' }),
+            });
+            console.log('getImageData');
             return originalGetImageData.apply(this, args);
         };
+
+        const originalCookieSetter = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie').set;
+        Object.defineProperty(document, 'cookie', {
+          set: function(value) {
+            fetch('http://localhost:3000/api/sites/fingerprint', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ url: document.location.href, type: 'cookie', value: value }),
+            });
+            console.log('COOKIE');
+            return originalCookieSetter.apply(this, arguments); // Call the original setter
+          }
+        });
+
       }, fakeUserAgent);
   
       // await page.setUserAgent(fakeUserAgent);
@@ -176,16 +215,19 @@ class NavigationHelper {
 
       page.on('request', async(request) => {
         request.startTime = new Date();
-        // this.requestIdToDateMap.set(request._requestId, new Date());
+      });
+
+      page.on('console', (msg) => {
+        console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] (${url}): PAGE LOG "${msg.text()}"`);
       });
 
       try {
-        console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}): Visiting.`);
+        console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] (${url}): Visiting.`);
         let visitResponse = null;
         try {
           visitResponse = await page.goto(url);
         } catch (error) {
-          console.error(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}):  Failed to visit the page: ${error.message}`);
+          console.error(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] (${url}):  Failed to visit the page: ${error.message}`);
           return {
             domainAddress: url,
             accessible: false,
@@ -203,7 +245,7 @@ class NavigationHelper {
             JSON.stringify(window.localStorage)
           );
         } catch (error) {
-          console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}): Local Strorage retrieval failure: '${error.message}'`);
+          console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] (${url}): Local Strorage retrieval failure: '${error.message}'`);
         }
   
         const frames = await page.frames();
@@ -221,7 +263,7 @@ class NavigationHelper {
               ).then(frameLocalStorage => {
                     siteFrame.localStorage = frameLocalStorage;
               }).catch(error => {
-                console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${frameUrl}) Frame: '${error.message}'`);
+                console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] (${frameUrl}) Frame: '${error.message}'`);
               });
               siteFrames.push(siteFrame);
           }
@@ -237,13 +279,13 @@ class NavigationHelper {
       } catch (error) {
         siteVisit.accessible = false;
         siteVisit.error = error.message;
-        console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}): puppeteer failure: '${error.message}'`);
+        console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] (${url}): puppeteer failure: '${error.message}'`);
       } 
       finally {
         this.delayedBrowserClose(browser, 15000);
       }
     } else {
-      console.log(`[${moment().format("DD.MM.YYYY HH:MM:ss")}] (${url}) Puppeteer page was closed, can't proceed.`);
+      console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] (${url}) Puppeteer page was closed, can't proceed.`);
     }
     return siteVisit;
   }

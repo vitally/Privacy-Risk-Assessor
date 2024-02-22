@@ -6,7 +6,7 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import { ApiHelper } from './modules/api/apiHelper.js';
-import moment from 'moment';
+import { DateTime } from 'luxon';
 
 const applicationConfiguration = ConfigurationHelper.getConfig('./config/applicationConfig.json');
 
@@ -15,7 +15,7 @@ if (isMainThread) {
   const siteVisitor = WorkerFactory.createWorker('./modules/orchestration/popularSiteVisitor.js', applicationConfiguration );
   
   siteCollector.on('message', msg => {
-    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Sites Colelctor: '${msg.domainAddress}'`);
+    console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Sites Colelctor: '${msg.domainAddress}'`);
     siteVisitor.postMessage(msg);
   });
   siteCollector.on('error', err => {
@@ -27,7 +27,7 @@ if (isMainThread) {
 
   
   siteVisitor.on('error', err => {
-    console.error(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Site Visitor: '${err.message}'`);
+    console.error(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Site Visitor: '${err.message}'`);
     // siteVisitor = WorkerFactory.createWorker('./modules/orchestration/popularSiteVisitor.js', applicationConfiguration );
   });
   siteVisitor.on('exit', code  => {
@@ -50,7 +50,7 @@ if (isMainThread) {
   app.use(bodyParser.urlencoded({ extended: true }));
 
   app.get('/api/sites', (req, res) => {
-    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Sites API Called.`);
+    console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Sites API Called.`);
     apiHelper.getAllSites().then((data, err) => {
       if (err) {
         console.error(err);
@@ -60,7 +60,7 @@ if (isMainThread) {
   });
 
   app.get('/api/sites/stats', (req, res) => {
-    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Sites Statistics API Called.`);
+    console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Sites Statistics API Called.`);
     apiHelper.getAllSiteStats().then((data, err) => {
       if (err) {
         console.error(err);
@@ -70,7 +70,7 @@ if (isMainThread) {
   });
 
   app.get('/api/sites/totals', (req, res) => {
-    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Sites Statistics API Called.`);
+    console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Sites Statistics API Called.`);
     apiHelper.getSiteTotals().then((data, err) => {
       if (err) {
         console.error(err);
@@ -80,7 +80,7 @@ if (isMainThread) {
   });
 
   // app.get('/api/sites/completeInfo', (req, res) => {
-  //   console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Sites with Requests and Owners API Called.`);
+  //   console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Sites with Requests and Owners API Called.`);
   //   apiHelper.getAllTheSitesWithRequestsAndOwners().then((data, err) => {
   //     if (err) {
   //       console.error(err);
@@ -90,7 +90,7 @@ if (isMainThread) {
   // });
 
   app.get('/api/sites/cookiesByDomain', (req, res) => {
-    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Cookies by Domain API Called.`);
+    console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Cookies by Domain API Called.`);
     apiHelper.getAllCookiesByDomain().then((data, err) => {
       if (err) {
         console.error(err);
@@ -101,15 +101,21 @@ if (isMainThread) {
 
   app.get('/api/sites/:siteName', (req, res) => {
     const siteToVisit = Buffer.from(req.params.siteName, 'base64').toString('utf8');
-    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Sites API Called. Need to visit '${siteToVisit}'`);
+    console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Sites API Called. Need to visit '${siteToVisit}'`);
     siteCollector.postMessage(siteToVisit);
     siteVisitor.once('message', msg => {
       res.json(msg);
     });
   });
 
+  app.post('/api/sites/fingerprint', (req, res) => {
+    console.log(req.body);
+    // Save the data to your database
+    res.send('Data received');
+  });
+
   app.get('/api/owners', (req, res) => {
-    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Owners API Called.`);
+    console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Owners API Called.`);
     apiHelper.getAllOwners().then((data, err) => {
       if (err) {
         console.error(err);
@@ -119,7 +125,7 @@ if (isMainThread) {
   });
 
   app.get('/api/trackers', (req, res) => {
-    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Trackers API Called.`);
+    console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Trackers API Called.`);
     apiHelper.getAllTrackers().then((data, err) => {
       if (err) {
         console.error(err);
@@ -129,7 +135,7 @@ if (isMainThread) {
   });
 
   app.get('/api/trackers/groupByDomain', (req, res) => {
-    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Trackers Group By Domain API Called.`);
+    console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Trackers Group By Domain API Called.`);
     apiHelper.getAllRequestCountByDomainAddress().then((data, err) => {
       if (err) {
         console.error(err);
@@ -139,7 +145,7 @@ if (isMainThread) {
   });
 
   app.post('/api/docs/generate', (req, res) => {
-    console.log(`[${moment().format('DD.MM.YYYY HH:MM:SS')}] Document Generation API Called.`);
+    console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Document Generation API Called.`);
     const requestData = req.body;
     res.set('Content-Type', 'application/octet-stream');
     res.set('Content-Disposition', `attachment; filename=${requestData.firstName}${requestData.lastName}-DVI-Complaint.docx`);
