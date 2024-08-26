@@ -28,7 +28,7 @@
     "mongodb": "^4.17.0",
     "nodemon": "^2.0.20",
     "pizzip": "^3.1.4",
-    "puppeteer": "^21.7.0",
+    "puppeteer": "^23.1.1",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "vue": "^3.2.45"
