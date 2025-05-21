@@ -108,10 +108,24 @@ if (isMainThread) {
     });
   });
 
-  app.post('/api/sites/fingerprint', (req, res) => {
-    console.log(req.body);
-    // Save the data to your database
-    res.send('Data received');
+  app.post('/api/sites/fingerprint', async (req, res) => {
+    try {
+      console.log(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Fingerprint attempt reported:`, req.body);
+      
+      if (apiHelper.database) { // apiHelper.database is the DatabaseHelper instance
+        await apiHelper.database.insertDocument(
+          applicationConfiguration.fingerprintAttemptsCollectionName,
+          req.body
+        );
+        res.status(200).send({ message: 'Fingerprint data received and saved.' });
+      } else {
+        console.error(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Database not available for fingerprint saving.`);
+        res.status(500).send({ error: 'Database not available.' });
+      }
+    } catch (error) {
+      console.error(`[${DateTime.now().toFormat('dd.MM.yyyy HH:mm:ss')}] Error saving fingerprint data:`, error);
+      res.status(500).send({ error: 'Error saving fingerprint data.' });
+    }
   });
 
   app.get('/api/owners', (req, res) => {

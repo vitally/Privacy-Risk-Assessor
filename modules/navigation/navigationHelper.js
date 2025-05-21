@@ -83,7 +83,6 @@ class NavigationHelper {
       headers: interceptedRequest.headers(),
       method: interceptedRequest.method(),
       postData: interceptedRequest.postData()?.replace(/[^\x00-\x7F]+/g, ''),
-      canvasFingerprint: requestURL.includes("iVBORw0KGgoAAAANSUhEUg"),
       executionTime: interceptedRequest.startTime ? new Date() - interceptedRequest.startTime : null
     };
     return requestDetails;
@@ -144,9 +143,14 @@ class NavigationHelper {
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ url: document.location.href, type: 'Canvas.toDataURL', value: '' }),
+            body: JSON.stringify({
+              url: document.location.href,
+              type: 'Canvas.toDataURL',
+              canvasWidth: this.width,
+              canvasHeight: this.height,
+              dataURLTypeArg: arguments.length > 0 ? arguments[0] : null
+            }),
           });
-          console.log('toBlob');
           // otherwise, just use the original function
           return originalCanvasToDataURL.apply(this, arguments);
         };
@@ -157,9 +161,15 @@ class NavigationHelper {
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ url: document.location.href, type: 'Canvas.toBlob', value: '' }),
+            body: JSON.stringify({
+              url: document.location.href,
+              type: 'Canvas.toBlob',
+              canvasWidth: this.width,
+              canvasHeight: this.height,
+              blobMimeType: arguments.length > 1 ? arguments[1] : null,
+              blobQuality: arguments.length > 2 ? arguments[2] : null
+            }),
           });
-          console.log('toBlob');
           return originalToBlob.apply(this, args);
         };
       
@@ -170,10 +180,64 @@ class NavigationHelper {
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({ url: document.location.href, type: 'Canvas.getImageData', value: '' }),
+              body: JSON.stringify({
+                url: document.location.href,
+                type: 'Canvas.getImageData',
+                canvasWidth: this.canvas.width,
+                canvasHeight: this.canvas.height,
+                sx: arguments.length > 0 ? arguments[0] : 0,
+                sy: arguments.length > 1 ? arguments[1] : 0,
+                sw: arguments.length > 2 ? arguments[2] : this.canvas.width,
+                sh: arguments.length > 3 ? arguments[3] : this.canvas.height
+              }),
             });
-            console.log('getImageData');
             return originalGetImageData.apply(this, args);
+        };
+
+        const originalFillText = CanvasRenderingContext2D.prototype.fillText;
+        CanvasRenderingContext2D.prototype.fillText = function(...args) {
+            const payload = {
+                url: document.location.href,
+                type: 'Canvas.fillText',
+                text: args.length > 0 ? args[0] : null,
+                x: args.length > 1 ? args[1] : null,
+                y: args.length > 2 ? args[2] : null,
+                maxWidth: args.length > 3 ? args[3] : null,
+                font: this.font,
+                textAlign: this.textAlign,
+                textBaseline: this.textBaseline,
+            };
+            fetch('http://localhost:3000/api/sites/fingerprint', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            });
+            return originalFillText.apply(this, args);
+        };
+
+        const originalStrokeText = CanvasRenderingContext2D.prototype.strokeText;
+        CanvasRenderingContext2D.prototype.strokeText = function(...args) {
+            const payload = {
+                url: document.location.href,
+                type: 'Canvas.strokeText',
+                text: args.length > 0 ? args[0] : null,
+                x: args.length > 1 ? args[1] : null,
+                y: args.length > 2 ? args[2] : null,
+                maxWidth: args.length > 3 ? args[3] : null,
+                font: this.font,
+                textAlign: this.textAlign,
+                textBaseline: this.textBaseline,
+            };
+            fetch('http://localhost:3000/api/sites/fingerprint', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            });
+            return originalStrokeText.apply(this, args);
         };
 
         const originalCookieSetter = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie').set;

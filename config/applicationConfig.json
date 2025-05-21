@@ -6,6 +6,7 @@
     "trackerCollectionName" : "trackersOnSites",
     "siteOwnersCollectionName": "siteOwners",
     "siteCookiesCollectionName": "siteCookies",
+    "fingerprintAttemptsCollectionName": "fingerprintAttempts",
     "httpServerHostname" : "127.0.0.1",
     "httpServerPort" : 3000,
     "collectSiteDataPeriodDays" : 7,
