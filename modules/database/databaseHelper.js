@@ -37,6 +37,19 @@ class DatabaseHelper {
     async insertMultipleRecords(collectionName,recordArray){
         this.openedDatabase.collection(collectionName).insertMany(recordArray);
     }
+
+    async insertDocument(collectionName, document) {
+        if (!this.openedDatabase) {
+            // This assumes that initializeConnectionAndOpenDatabase has been called
+            // or needs to be called. For simplicity, let's assume it's been called
+            // and this.openedDatabase is set. A robust implementation might need
+            // to handle DB initialization more explicitly here if it could be called standalone.
+            // However, in the context of app.js, the DB is initialized at startup.
+            console.error("Database not initialized before calling insertDocument");
+            throw new Error("Database not initialized"); 
+        }
+        return await this.openedDatabase.collection(collectionName).insertOne(document);
+    }
     
     createNameValueJSON(fieldName,fieldValue){
         const queryString = '{"' + fieldName +'" : "' + fieldValue + '"}';
