@@ -50,6 +50,18 @@ class ApiHelper {
       return await this.database.getAllRequestCountByDomainAddress(this.config.trackerCollectionName);
     }
 
+    async saveFingerprintData(fingerprintData) {
+      // Ensure database is initialized for this operation if it's not guaranteed globally for ApiHelper
+      // For simplicity, assuming database connection is handled before API calls or is persistent.
+      // If not, await this.database.initializeConnectionAndOpenDatabase(this.config.databaseName);
+      if (!this.database) {
+        throw new Error("Database not available in ApiHelper for saving fingerprint data.");
+      }
+      // The method `insertDocument` in DatabaseHelper already checks if `openedDatabase` is set.
+      // We rely on that internal check.
+      return await this.database.insertDocument(this.config.fingerprintAttemptsCollectionName, fingerprintData);
+    }
+
     async createComplaintDocument(docData){
       return DocumentHelper.createComplaintDoc(docData);
     }
